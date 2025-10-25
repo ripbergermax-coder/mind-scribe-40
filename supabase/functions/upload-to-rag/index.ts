@@ -136,13 +136,31 @@ serve(async (req) => {
       // Handle JSON files
       if (name.toLowerCase().endsWith('.json')) {
         try {
-          const items = JSON.parse(content);
+          let items;
+          try {
+            items = JSON.parse(content);
+          } catch (parseError) {
+            console.error(`Invalid JSON in ${name}:`, parseError);
+            throw new Error(`Invalid JSON format in ${name}. Please ensure the file contains valid JSON.`);
+          }
+
+          // Handle both array and single object
+          if (!Array.isArray(items)) {
+            items = [items];
+          }
+
           console.log(`JSON file with ${items.length} items`);
 
           for (let i = 0; i < items.length; i++) {
             const item = items[i];
-            const text = item.content || '';
-            const title = item.title || item.name || '';
+            // Support multiple field names for content
+            const text = item.content || item.text || '';
+            const title = item.title || item.name || `Item ${i + 1}`;
+
+            if (!text) {
+              console.warn(`Skipping item ${i} in ${name}: no content found`);
+              continue;
+            }
 
             const chunks = chunkText(text);
             chunks.forEach((chunk, j) => {
@@ -153,8 +171,8 @@ serve(async (req) => {
             });
           }
         } catch (e) {
-          console.error(`JSON parse error for ${name}:`, e);
-          throw new Error(`JSON parse failed for ${name}`);
+          console.error(`JSON processing error for ${name}:`, e);
+          throw new Error(e instanceof Error ? e.message : `Failed to process JSON file ${name}`);
         }
       } else {
         // Handle text files
