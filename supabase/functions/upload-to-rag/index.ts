@@ -67,8 +67,8 @@ serve(async (req) => {
           vectorizer: 'text2vec-openai',
           moduleConfig: {
             'text2vec-openai': {
-              model: 'text-embedding-3-small',
-              modelVersion: 'ada-002',
+              model: 'text-embedding-3-large',
+              modelVersion: 'ada-003',
               type: 'text',
             },
           },
