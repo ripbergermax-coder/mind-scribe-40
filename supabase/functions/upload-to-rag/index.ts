@@ -132,32 +132,7 @@ serve(async (req) => {
             {
               name: "title",
               dataType: ["text"],
-              description: "Message title",
-            },
-            {
-              name: "sender_name",
-              dataType: ["text"],
-              description: "Name of the sender",
-            },
-            {
-              name: "receiver_name",
-              dataType: ["text"],
-              description: "Name of the receiver",
-            },
-            {
-              name: "category",
-              dataType: ["text"],
-              description: "Message category",
-            },
-            {
-              name: "department",
-              dataType: ["text"],
-              description: "Related department",
-            },
-            {
-              name: "effective_date",
-              dataType: ["date"],
-              description: "Effective date of the message",
+              description: "Original title",
             },
           ],
         }),
@@ -260,15 +235,7 @@ serve(async (req) => {
 
       console.log(`Processing file: ${name}`);
 
-      const chunksForInsert: Array<{ 
-        content: string; 
-        title: string;
-        sender_name?: string;
-        receiver_name?: string;
-        category?: string;
-        department?: string;
-        effective_date?: string;
-      }> = [];
+      const chunksForInsert: Array<{ content: string; title: string }> = [];
 
       const ext = name.toLowerCase();
 
@@ -330,16 +297,14 @@ serve(async (req) => {
               continue;
             }
 
-            const chunks = chunkText(text);
+            // Format as structured text
+            const formattedText = `sender_name: "${sender_name}", receiver_name: "${receiver_name}", title: "${title}"; content: "${text}"; category: "${category}"; department: "${department}"; effective_date: "${effective_date}";`;
+
+            const chunks = chunkText(formattedText);
             chunks.forEach((chunk, j) => {
               chunksForInsert.push({
                 content: chunk,
                 title: j === 0 ? title : `${title} (Part ${j + 1})`,
-                sender_name,
-                receiver_name,
-                category,
-                department,
-                effective_date,
               });
             });
           }
@@ -401,11 +366,6 @@ serve(async (req) => {
             title: chunk.title,
             document_name: name,
             chunk_index: i + idx,
-            sender_name: chunk.sender_name || "User",
-            receiver_name: chunk.receiver_name || "ChatBot",
-            category: chunk.category || "General",
-            department: chunk.department || "Support",
-            effective_date: chunk.effective_date || new Date().toISOString().split('T')[0],
           },
         }));
 
