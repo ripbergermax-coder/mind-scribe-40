@@ -93,6 +93,7 @@ export async function sendToN8NAsJSON(payload: {
       },
       body: JSON.stringify({
         textPrompt: payload.textPrompt,
+        textType: "text",
         audioBase64: payload.audioBase64,
         documentBase64: payload.documentBase64,
         metadata: {
