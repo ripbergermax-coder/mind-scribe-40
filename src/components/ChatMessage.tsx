@@ -1,13 +1,15 @@
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
   timestamp?: string;
+  isLoading?: boolean;
 }
 
-const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
+const ChatMessage = ({ role, content, timestamp, isLoading = false }: ChatMessageProps) => {
   const isUser = role === "user";
 
   return (
@@ -24,7 +26,10 @@ const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
         {isUser ? (
           <User className="h-5 w-5 text-primary-foreground" />
         ) : (
-          <Bot className="h-5 w-5 text-foreground" />
+          <Bot className={cn(
+            "h-5 w-5 text-foreground",
+            isLoading && "animate-pulse"
+          )} />
         )}
       </div>
 
@@ -38,7 +43,15 @@ const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
           )}
         </div>
         <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-          {content}
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-4/6" />
+            </div>
+          ) : (
+            content
+          )}
         </div>
       </div>
     </div>

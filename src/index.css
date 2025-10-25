@@ -66,4 +66,15 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  @keyframes bubble-float {
+    0% {
+      opacity: 0.8;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-40px) scale(0.3);
+    }
+  }
 }

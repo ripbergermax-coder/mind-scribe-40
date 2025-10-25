@@ -62,6 +62,7 @@ const Index = () => {
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [movingChat, setMovingChat] = useState<Chat | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<{ type: "chat" | "project"; id: string; timeout: NodeJS.Timeout } | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -526,6 +527,9 @@ const Index = () => {
     }
 
     try {
+      // Show loading state
+      setIsAiLoading(true);
+
       // Prepare conversation history for context
       const conversationHistory = currentChat?.messages.map(msg => ({
         role: msg.role,
@@ -628,6 +632,9 @@ const Index = () => {
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      // Hide loading state
+      setIsAiLoading(false);
     }
   };
 
@@ -704,6 +711,9 @@ const Index = () => {
         title: "Transcribed",
         description: "Sending to N8N for processing",
       });
+
+      // Show loading state
+      setIsAiLoading(true);
 
       // Prepare conversation history for context
       const conversationHistory = currentChat?.messages.map(msg => ({
@@ -784,6 +794,9 @@ const Index = () => {
         description: "Failed to process audio",
         variant: "destructive",
       });
+    } finally {
+      // Hide loading state
+      setIsAiLoading(false);
     }
   };
 
@@ -1049,6 +1062,13 @@ const Index = () => {
                     timestamp={message.timestamp}
                   />
                 ))}
+                {isAiLoading && (
+                  <ChatMessage
+                    role="assistant"
+                    content=""
+                    isLoading={true}
+                  />
+                )}
               </div>
             </ScrollArea>
 

@@ -129,23 +129,17 @@ const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, on
           <div className="flex gap-2">
             <div className="relative w-12 h-12">
               <AudioBubbles isActive={isRecording} />
-              {isRecording && (
-                <>
-                  <div className="absolute inset-0 rounded-md bg-destructive/20 animate-ping" />
-                  <div className="absolute inset-0 rounded-md bg-destructive/30 animate-pulse" />
-                </>
-              )}
               <Button
-                variant={isRecording ? "destructive" : "outline"}
+                variant={isRecording ? "default" : "outline"}
                 size="icon"
                 onClick={handleMicClick}
                 className={cn(
                   "flex-shrink-0 transition-all relative z-10",
-                  isRecording && "shadow-[0_0_20px_rgba(239,68,68,0.5)]"
+                  isRecording && "bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(255,119,0,0.4)]"
                 )}
               >
                 {isRecording ? (
-                  <MicOff className="h-5 w-5 animate-pulse" />
+                  <MicOff className="h-5 w-5" />
                 ) : (
                   <Mic className="h-5 w-5" />
                 )}
