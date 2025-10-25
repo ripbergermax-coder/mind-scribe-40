@@ -1,4 +1,4 @@
-import { MessageSquare, FolderKanban, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, FolderKanban, Plus, Trash2, Edit2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -16,12 +16,12 @@ interface Chat {
   title: string;
   messages: Message[];
   timestamp: string;
+  project_id?: string | null;
 }
 
 interface Project {
   id: string;
   name: string;
-  chats: Chat[];
 }
 
 interface ChatSidebarProps {
@@ -32,8 +32,12 @@ interface ChatSidebarProps {
   onNewChat: () => void;
   onSelectChat: (chatId: string) => void;
   onDeleteChat: (chatId: string) => void;
+  onRenameChat: (chatId: string) => void;
+  onMoveToProject: (chatId: string) => void;
   onCreateProject: () => void;
   onDeleteProject: (projectId: string) => void;
+  onRenameProject: (projectId: string) => void;
+  onLogout: () => void;
 }
 
 const ChatSidebar = ({ 
@@ -44,10 +48,14 @@ const ChatSidebar = ({
   onNewChat,
   onSelectChat,
   onDeleteChat,
+  onRenameChat,
+  onMoveToProject,
   onCreateProject,
-  onDeleteProject
+  onDeleteProject,
+  onRenameProject,
+  onLogout
 }: ChatSidebarProps) => {
-  const recentChats = chats.slice(0, 10);
+  const unassignedChats = chats.filter(chat => !chat.project_id).slice(0, 10);
 
   return (
     <div className={cn(
@@ -82,12 +90,12 @@ const ChatSidebar = ({
               )}
             </div>
             <div className="space-y-1">
-              {recentChats.map((chat) => (
+              {unassignedChats.map((chat) => (
                 <div key={chat.id} className="relative group/item">
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start hover:bg-sidebar-accent group",
+                      "w-full justify-start hover:bg-sidebar-accent group pr-20",
                       collapsed && "px-2",
                       currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
                     )}
@@ -104,17 +112,44 @@ const ChatSidebar = ({
                     )}
                   </Button>
                   {!collapsed && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/item:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteChat(chat.id);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-primary/20 hover:text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRenameChat(chat.id);
+                        }}
+                        title="Rename"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-accent/20 hover:text-accent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoveToProject(chat.id);
+                        }}
+                        title="Move to project"
+                      >
+                        <FolderKanban className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteChat(chat.id);
+                        }}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}
@@ -141,42 +176,131 @@ const ChatSidebar = ({
               </Button>
             </div>
             <div className="space-y-1">
-              {projects.map((project) => (
-                <div key={project.id} className="relative group/item">
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start hover:bg-sidebar-accent group",
-                      collapsed && "px-2"
-                    )}
-                  >
-                    <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
-                    {!collapsed && (
-                      <div className="flex-1 flex items-center justify-between">
-                        <span className="text-sm">{project.name}</span>
-                        <span className="text-xs text-muted-foreground">{project.chats.length}</span>
+              {projects.map((project) => {
+                const projectChats = chats.filter(chat => chat.project_id === project.id);
+                return (
+                  <div key={project.id} className="space-y-1">
+                    <div className="relative group/item">
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start hover:bg-sidebar-accent group pr-16",
+                          collapsed && "px-2"
+                        )}
+                      >
+                        <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                        {!collapsed && (
+                          <div className="flex-1 flex items-center justify-between">
+                            <span className="text-sm truncate">{project.name}</span>
+                            <span className="text-xs text-muted-foreground">{projectChats.length}</span>
+                          </div>
+                        )}
+                      </Button>
+                      {!collapsed && (
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-primary/20 hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRenameProject(project.id);
+                            }}
+                            title="Rename"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteProject(project.id);
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    {!collapsed && projectChats.map((chat) => (
+                      <div key={chat.id} className="relative group/item ml-6">
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            "w-full justify-start hover:bg-sidebar-accent group pr-20",
+                            currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
+                          )}
+                          onClick={() => onSelectChat(chat.id)}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <div className="flex-1 text-left overflow-hidden">
+                            <p className="text-sm truncate">{chat.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {chat.messages.length} messages
+                            </p>
+                          </div>
+                        </Button>
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-primary/20 hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRenameChat(chat.id);
+                            }}
+                            title="Rename"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-accent/20 hover:text-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMoveToProject(chat.id);
+                            }}
+                            title="Move to project"
+                          >
+                            <FolderKanban className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteChat(chat.id);
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </Button>
-                  {!collapsed && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/item:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteProject(project.id);
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </ScrollArea>
+      
+      <div className="p-4 border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+          onClick={onLogout}
+        >
+          <LogOut className="h-4 w-4 mr-3" />
+          {!collapsed && <span>Logout</span>}
+        </Button>
+      </div>
     </div>
   );
 };

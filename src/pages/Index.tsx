@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,8 +8,12 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import DocumentUpload from "@/components/DocumentUpload";
 import StarBackground from "@/components/StarBackground";
+import RenameDialog from "@/components/RenameDialog";
+import ProjectDialog from "@/components/ProjectDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { sendTextToN8N } from "@/services/n8n";
+import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
 
 interface Message {
   id: string;
@@ -28,69 +33,163 @@ interface Chat {
   title: string;
   messages: Message[];
   timestamp: string;
+  project_id?: string | null;
+  user_id?: string;
 }
 
 interface Project {
   id: string;
   name: string;
-  chats: Chat[];
+  user_id?: string;
 }
 
 const Index = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState<string>("1");
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: "1",
-      title: "New Conversation",
-      timestamp: new Date().toISOString(),
-      messages: [
-        {
-          id: "1",
-          role: "assistant",
-          content:
-            "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
-          timestamp: "just now",
-        },
-      ],
-    },
-  ]);
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Personal",
-      chats: [],
-    },
-  ]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renamingItem, setRenamingItem] = useState<{ type: 'chat' | 'project', id: string, name: string } | null>(null);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [movingChat, setMovingChat] = useState<Chat | null>(null);
+  const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session) {
+        navigate("/auth");
+      } else if (event === 'SIGNED_IN') {
+        setTimeout(() => {
+          loadChatsAndProjects();
+        }, 0);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (user) {
+      loadChatsAndProjects();
+    }
+  }, [user]);
+
+  const loadChatsAndProjects = async () => {
+    if (!user) return;
+
+    try {
+      // Load projects
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectsError) throw projectsError;
+      setProjects(projectsData || []);
+
+      // Load chats
+      const { data: chatsData, error: chatsError } = await supabase
+        .from('chats')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (chatsError) throw chatsError;
+
+      // Load messages for each chat
+      const chatsWithMessages = await Promise.all(
+        (chatsData || []).map(async (chat) => {
+          const { data: messagesData } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('chat_id', chat.id)
+            .order('created_at', { ascending: true });
+
+          return {
+            ...chat,
+            messages: (messagesData || []).map(msg => ({
+              id: msg.id,
+              role: msg.role as 'user' | 'assistant',
+              content: msg.content,
+              timestamp: new Date(msg.created_at).toLocaleTimeString(),
+            })),
+            timestamp: chat.created_at,
+          };
+        })
+      );
+
+      setChats(chatsWithMessages);
+
+      // Set current chat to the most recent one
+      if (chatsWithMessages.length > 0 && !currentChatId) {
+        setCurrentChatId(chatsWithMessages[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load your data",
+        variant: "destructive",
+      });
+    }
+  };
 
   const currentChat = chats.find((c) => c.id === currentChatId);
   const messages = currentChat?.messages || [];
 
-  const handleCreateNewChat = () => {
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      title: "New Conversation",
-      timestamp: new Date().toISOString(),
-      messages: [
-        {
-          id: Date.now().toString(),
-          role: "assistant",
-          content:
-            "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
-          timestamp: "just now",
-        },
-      ],
-    };
-    setChats((prev) => [newChat, ...prev]);
-    setCurrentChatId(newChat.id);
-    setUploadedFiles([]);
-    toast({
-      title: "New chat created",
-      description: "Started a fresh conversation",
-    });
+  const handleCreateNewChat = async () => {
+    if (!user) return;
+
+    try {
+      const { data: newChat, error } = await supabase
+        .from('chats')
+        .insert({
+          user_id: user.id,
+          title: 'New Conversation',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const chatWithMessages: Chat = {
+        ...newChat,
+        messages: [],
+        timestamp: newChat.created_at,
+      };
+
+      setChats((prev) => [chatWithMessages, ...prev]);
+      setCurrentChatId(newChat.id);
+      setUploadedFiles([]);
+      
+      toast({
+        title: "New chat created",
+        description: "Started a fresh conversation",
+      });
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create chat",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSelectChat = (chatId: string) => {
@@ -98,59 +197,235 @@ const Index = () => {
     setUploadedFiles([]);
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== chatId));
-    if (currentChatId === chatId) {
-      const remainingChats = chats.filter((c) => c.id !== chatId);
-      if (remainingChats.length > 0) {
-        setCurrentChatId(remainingChats[0].id);
-      } else {
-        handleCreateNewChat();
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+
+      if (error) throw error;
+
+      setChats((prev) => prev.filter((c) => c.id !== chatId));
+      
+      if (currentChatId === chatId) {
+        const remainingChats = chats.filter((c) => c.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChatId(remainingChats[0].id);
+        } else {
+          handleCreateNewChat();
+        }
       }
+      
+      toast({
+        title: "Chat deleted",
+        description: "Conversation removed",
+      });
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chat",
+        variant: "destructive",
+      });
     }
-    toast({
-      title: "Chat deleted",
-      description: "Conversation removed",
-    });
   };
 
-  const handleCreateProject = () => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: "New Project",
-      chats: [],
-    };
-    setProjects((prev) => [...prev, newProject]);
-    toast({
-      title: "Project created",
-      description: "New project added",
-    });
+  const handleRenameChat = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      setRenamingItem({ type: 'chat', id: chatId, name: chat.title });
+      setRenameDialogOpen(true);
+    }
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    toast({
-      title: "Project deleted",
-      description: "Project removed",
-    });
+  const handleMoveToProject = (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (chat) {
+      setMovingChat(chat);
+      setProjectDialogOpen(true);
+    }
+  };
+
+  const handleAssignToProject = async (chatId: string, projectId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('chats')
+        .update({ project_id: projectId })
+        .eq('id', chatId);
+
+      if (error) throw error;
+
+      setChats(prev => prev.map(chat =>
+        chat.id === chatId ? { ...chat, project_id: projectId } : chat
+      ));
+
+      toast({
+        title: "Chat moved",
+        description: projectId ? "Chat assigned to project" : "Chat removed from project",
+      });
+    } catch (error) {
+      console.error('Error moving chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to move chat",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!user) return;
+
+    try {
+      const { data: newProject, error } = await supabase
+        .from('projects')
+        .insert({
+          user_id: user.id,
+          name: 'New Project',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProjects((prev) => [...prev, newProject]);
+      toast({
+        title: "Project created",
+        description: "New project added",
+      });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create project",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      toast({
+        title: "Project deleted",
+        description: "Project removed",
+      });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setRenamingItem({ type: 'project', id: projectId, name: project.name });
+      setRenameDialogOpen(true);
+    }
+  };
+
+  const handleRename = async (newName: string) => {
+    if (!renamingItem) return;
+
+    try {
+      if (renamingItem.type === 'chat') {
+        const { error } = await supabase
+          .from('chats')
+          .update({ title: newName })
+          .eq('id', renamingItem.id);
+
+        if (error) throw error;
+
+        setChats(prev => prev.map(chat =>
+          chat.id === renamingItem.id ? { ...chat, title: newName } : chat
+        ));
+      } else {
+        const { error } = await supabase
+          .from('projects')
+          .update({ name: newName })
+          .eq('id', renamingItem.id);
+
+        if (error) throw error;
+
+        setProjects(prev => prev.map(project =>
+          project.id === renamingItem.id ? { ...project, name: newName } : project
+        ));
+      }
+
+      toast({
+        title: "Renamed",
+        description: `${renamingItem.type === 'chat' ? 'Chat' : 'Project'} renamed successfully`,
+      });
+    } catch (error) {
+      console.error('Error renaming:', error);
+      toast({
+        title: "Error",
+        description: "Failed to rename",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
   };
 
   const handleSendMessage = async (content: string) => {
+    if (!currentChatId || !user) return;
+
+    const tempMessageId = Date.now().toString();
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: tempMessageId,
       role: "user",
       content,
       timestamp: "just now",
     };
 
+    // Optimistically update UI
     setChats((prev) =>
       prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, userMessage] } : chat)),
     );
 
-    // Update chat title if it's the first user message
-    if (currentChat && currentChat.messages.length === 1) {
-      const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
-      setChats((prev) => prev.map((chat) => (chat.id === currentChatId ? { ...chat, title } : chat)));
+    // Save to database
+    try {
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          chat_id: currentChatId,
+          role: 'user',
+          content,
+        });
+
+      if (msgError) throw msgError;
+
+      // Update chat title if it's the first user message
+      if (currentChat && currentChat.messages.length === 0) {
+        const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
+        
+        const { error: chatError } = await supabase
+          .from('chats')
+          .update({ title })
+          .eq('id', currentChatId);
+
+        if (!chatError) {
+          setChats((prev) => prev.map((chat) => (chat.id === currentChatId ? { ...chat, title } : chat)));
+        }
+      }
+    } catch (error) {
+      console.error('Error saving message:', error);
     }
 
     try {
@@ -218,6 +493,19 @@ const Index = () => {
         content: aiResponseContent,
         timestamp: "just now",
       };
+
+      // Save AI response to database
+      try {
+        await supabase
+          .from('messages')
+          .insert({
+            chat_id: currentChatId,
+            role: 'assistant',
+            content: aiResponseContent,
+          });
+      } catch (error) {
+        console.error('Error saving AI message:', error);
+      }
 
       setChats((prev) =>
         prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, aiMessage] } : chat)),
@@ -342,6 +630,20 @@ const Index = () => {
         timestamp: "just now",
       };
 
+      // Save both messages to database
+      if (currentChatId && user) {
+        try {
+          await supabase
+            .from('messages')
+            .insert([
+              { chat_id: currentChatId, role: 'user', content: text },
+              { chat_id: currentChatId, role: 'assistant', content: aiResponseContent }
+            ]);
+        } catch (error) {
+          console.error('Error saving voice messages:', error);
+        }
+      }
+
       setChats((prev) =>
         prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, aiMessage] } : chat)),
       );
@@ -367,19 +669,46 @@ const Index = () => {
     });
   };
 
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen w-full bg-background">
       <ChatSidebar
         collapsed={sidebarCollapsed}
         chats={chats}
         projects={projects}
-        currentChatId={currentChatId}
+        currentChatId={currentChatId || ""}
         onNewChat={handleCreateNewChat}
         onSelectChat={handleSelectChat}
         onDeleteChat={handleDeleteChat}
+        onRenameChat={handleRenameChat}
+        onMoveToProject={handleMoveToProject}
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
+        onRenameProject={handleRenameProject}
+        onLogout={handleLogout}
       />
+
+      <RenameDialog
+        open={renameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        currentName={renamingItem?.name || ""}
+        onRename={handleRename}
+        title={`Rename ${renamingItem?.type === 'chat' ? 'Chat' : 'Project'}`}
+        description={`Enter a new name for this ${renamingItem?.type}`}
+      />
+
+      {movingChat && (
+        <ProjectDialog
+          open={projectDialogOpen}
+          onOpenChange={setProjectDialogOpen}
+          chat={movingChat}
+          projects={projects}
+          onAssign={handleAssignToProject}
+        />
+      )}
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
