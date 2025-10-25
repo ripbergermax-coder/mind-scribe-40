@@ -157,7 +157,7 @@ const Index = () => {
       ));
     }
 
-    // Send to N8N
+    // Send to N8N and wait for RAG response
     const n8nResponse = await sendTextToN8N(content, {
       messageId: userMessage.id,
       chatId: currentChatId,
@@ -167,26 +167,38 @@ const Index = () => {
 
     if (!n8nResponse.success) {
       toast({
-        title: "N8N Error",
+        title: "Error",
         description: n8nResponse.message,
         variant: "destructive"
       });
-    }
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
+      
+      // Show error message in chat
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I understand your question. This is a demo response. In a full implementation, I would process your input and provide intelligent insights based on your documents and conversation history.",
+        content: "Sorry, I encountered an error processing your request. Please try again.",
         timestamp: "just now"
       };
       setChats(prev => prev.map(chat =>
         chat.id === currentChatId
-          ? { ...chat, messages: [...chat.messages, aiMessage] }
+          ? { ...chat, messages: [...chat.messages, errorMessage] }
           : chat
       ));
-    }, 1000);
+      return;
+    }
+
+    // Use actual RAG response from N8N
+    const aiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: n8nResponse.data?.response || n8nResponse.data?.message || "I received your message but couldn't generate a response.",
+      timestamp: "just now"
+    };
+    setChats(prev => prev.map(chat =>
+      chat.id === currentChatId
+        ? { ...chat, messages: [...chat.messages, aiMessage] }
+        : chat
+    ));
   };
 
   const handleFileUpload = async (files: FileList) => {
