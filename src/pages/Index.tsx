@@ -157,48 +157,86 @@ const Index = () => {
       ));
     }
 
-    // Send to N8N and wait for RAG response
-    const n8nResponse = await sendTextToN8N(content, {
-      messageId: userMessage.id,
-      chatId: currentChatId,
-      source: 'chat',
-      isVoiceMode
-    });
-
-    if (!n8nResponse.success) {
-      toast({
-        title: "Error",
-        description: n8nResponse.message,
-        variant: "destructive"
+    try {
+      // Send to N8N and wait for RAG response
+      const n8nResponse = await sendTextToN8N(content, {
+        messageId: userMessage.id,
+        chatId: currentChatId,
+        source: 'chat',
+        isVoiceMode
       });
+
+      // DEBUG: Log the actual response to see what we get
+      console.log('N8N Full Response:', n8nResponse);
+      console.log('N8N Response Data:', n8nResponse.data);
+
+      if (!n8nResponse.success) {
+        toast({
+          title: "Error",
+          description: n8nResponse.message,
+          variant: "destructive"
+        });
+        
+        // Show error message in chat
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Sorry, I encountered an error processing your request. Please try again.",
+          timestamp: "just now"
+        };
+        setChats(prev => prev.map(chat =>
+          chat.id === currentChatId
+            ? { ...chat, messages: [...chat.messages, errorMessage] }
+            : chat
+        ));
+        return;
+      }
+
+      // Extract the actual AI response from multiple possible paths
+      let aiResponseContent = "I received your message but couldn't generate a response.";
       
-      // Show error message in chat
-      const errorMessage: Message = {
+      // Try different possible response paths from n8n
+      if (n8nResponse.data?.data?.response) {
+        // Path: data.data.response
+        aiResponseContent = n8nResponse.data.data.response;
+      } else if (n8nResponse.data?.response) {
+        // Path: data.response
+        aiResponseContent = n8nResponse.data.response;
+      } else if (n8nResponse.data?.message) {
+        // Path: data.message
+        aiResponseContent = n8nResponse.data.message;
+      } else if (typeof n8nResponse.data === 'string') {
+        // Direct string response
+        aiResponseContent = n8nResponse.data;
+      } else if (n8nResponse.data?.choices?.[0]?.message?.content) {
+        // OpenAI direct format
+        aiResponseContent = n8nResponse.data.choices[0].message.content;
+      }
+
+      console.log('Extracted AI Response:', aiResponseContent);
+
+      // Use actual RAG response from N8N
+      const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Sorry, I encountered an error processing your request. Please try again.",
+        content: aiResponseContent,
         timestamp: "just now"
       };
+      
       setChats(prev => prev.map(chat =>
         chat.id === currentChatId
-          ? { ...chat, messages: [...chat.messages, errorMessage] }
+          ? { ...chat, messages: [...chat.messages, aiMessage] }
           : chat
       ));
-      return;
-    }
 
-    // Use actual RAG response from N8N
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: n8nResponse.data?.response || n8nResponse.data?.message || "I received your message but couldn't generate a response.",
-      timestamp: "just now"
-    };
-    setChats(prev => prev.map(chat =>
-      chat.id === currentChatId
-        ? { ...chat, messages: [...chat.messages, aiMessage] }
-        : chat
-    ));
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleFileUpload = async (files: FileList) => {
