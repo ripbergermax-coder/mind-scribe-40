@@ -1015,6 +1015,7 @@ const Index = () => {
             onDeleteChat={handleDeleteChat}
             onRenameChat={handleRenameChat}
             onMoveToProject={handleMoveToProject}
+            onAssignToProject={handleAssignToProject}
             onCreateProject={handleCreateProject}
             onDeleteProject={handleDeleteProject}
             onRenameProject={handleRenameProject}
