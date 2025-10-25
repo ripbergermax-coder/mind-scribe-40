@@ -159,11 +159,14 @@ const Index = () => {
 
     try {
       // Send to N8N and wait for RAG response
-      const n8nResponse = await sendTextToN8N(content, {
-        messageId: userMessage.id,
-        chatId: currentChatId,
-        source: 'chat',
-        isVoiceMode
+      const n8nResponse = await sendToN8N({
+        textPrompt: content,
+        metadata: {
+          messageId: userMessage.id,
+          chatId: currentChatId,
+          source: 'chat',
+          isVoiceMode
+        }
       });
 
       // DEBUG: Log the actual response to see what we get
