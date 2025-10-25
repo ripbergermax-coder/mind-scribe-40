@@ -60,7 +60,7 @@ const ChatSidebar = ({
   return (
     <div className={cn(
       "flex flex-col h-full bg-sidebar border-r border-sidebar-border transition-all duration-300",
-      collapsed ? "w-16" : "w-72"
+      collapsed ? "w-16" : "w-full"
     )}>
       <div className="p-4 flex items-center justify-between">
         {!collapsed && (
@@ -95,8 +95,8 @@ const ChatSidebar = ({
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start hover:bg-sidebar-accent group pr-20",
-                      collapsed && "px-2",
+                      "w-full justify-start hover:bg-sidebar-accent group",
+                      collapsed ? "px-2" : "pr-24",
                       currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
                     )}
                     onClick={() => onSelectChat(chat.id)}
@@ -112,7 +112,7 @@ const ChatSidebar = ({
                     )}
                   </Button>
                   {!collapsed && (
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-sidebar z-10 px-1">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -184,8 +184,8 @@ const ChatSidebar = ({
                       <Button
                         variant="ghost"
                         className={cn(
-                          "w-full justify-start hover:bg-sidebar-accent group pr-16",
-                          collapsed && "px-2"
+                          "w-full justify-start hover:bg-sidebar-accent group",
+                          collapsed ? "px-2" : "pr-20"
                         )}
                       >
                         <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
@@ -197,7 +197,7 @@ const ChatSidebar = ({
                         )}
                       </Button>
                       {!collapsed && (
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-sidebar z-10 px-1">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -230,7 +230,7 @@ const ChatSidebar = ({
                         <Button
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start hover:bg-sidebar-accent group pr-20",
+                            "w-full justify-start hover:bg-sidebar-accent group pr-24",
                             currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
                           )}
                           onClick={() => onSelectChat(chat.id)}
@@ -243,7 +243,7 @@ const ChatSidebar = ({
                             </p>
                           </div>
                         </Button>
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-sidebar z-10 px-1">
                           <Button
                             variant="ghost"
                             size="icon"
