@@ -466,25 +466,14 @@ const Index = () => {
         return;
       }
 
-      // Extract the actual AI response from multiple possible paths
+      // Extract the AI response from N8N webhook response
       let aiResponseContent = "I received your message but couldn't generate a response.";
 
-      // Try different possible response paths from n8n
-      if (n8nResponse.data?.data?.response) {
-        // Path: data.data.response
-        aiResponseContent = n8nResponse.data.data.response;
-      } else if (n8nResponse.data?.response) {
-        // Path: data.response
-        aiResponseContent = n8nResponse.data.response;
-      } else if (n8nResponse.data?.message) {
-        // Path: data.message
+      // N8N webhook returns: { success: true, message: "AI response content" }
+      if (n8nResponse.data?.message) {
         aiResponseContent = n8nResponse.data.message;
       } else if (typeof n8nResponse.data === "string") {
-        // Direct string response
         aiResponseContent = n8nResponse.data;
-      } else if (n8nResponse.data?.choices?.[0]?.message?.content) {
-        // OpenAI direct format
-        aiResponseContent = n8nResponse.data.choices[0].message.content;
       }
 
       console.log("Extracted AI Response:", aiResponseContent);
