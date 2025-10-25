@@ -1043,17 +1043,19 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Document Upload Area */}
-            <DocumentUpload
-              files={uploadedFiles}
-              onRemoveFile={handleRemoveFile}
-              onUploadFiles={handleUploadFiles}
-              onProcessBinaryFiles={handleProcessBinaryFiles}
-            />
 
             {/* Messages */}
             <ScrollArea className="flex-1 relative">
               <StarBackground />
+              
+              {/* Document Upload Floating Button */}
+              <DocumentUpload
+                files={uploadedFiles}
+                onRemoveFile={handleRemoveFile}
+                onUploadFiles={handleUploadFiles}
+                onProcessBinaryFiles={handleProcessBinaryFiles}
+              />
+              
               <div className="max-w-4xl mx-auto relative z-10">
                 {messages.map((message) => (
                   <ChatMessage

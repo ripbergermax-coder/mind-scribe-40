@@ -34,11 +34,8 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
   };
 
   return (
-    <div className="bg-transparent">
-      <div className="max-w-4xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          {files.length > 0 && <h3 className="text-sm font-medium">Documents for RAG</h3>}
-          <div className={cn(files.length === 0 && "ml-auto")}>
+    <div className="absolute top-4 right-4 z-10">
+      <div className="flex items-center gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -47,39 +44,39 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
               onChange={handleFileChange}
               className="hidden"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="shadow-sm hover:shadow-md transition-shadow"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Files
-            </Button>
-            {binaryFilesCount > 0 && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onProcessBinaryFiles}
-                className="ml-2"
-              >
-                Process {binaryFilesCount} Binary File{binaryFilesCount > 1 ? 's' : ''}
-              </Button>
-            )}
-          </div>
-        </div>
-        {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 p-3 rounded-lg bg-secondary/30 backdrop-blur-sm border border-border/50 shadow-sm">
-          {files.map((file) => (
-            <div
-              key={file.id}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg",
-                "bg-background/80 border border-border/50",
-                "hover:border-primary transition-all hover:shadow-md group",
-              file.isBinary && !file.isProcessed && "border-yellow-500"
-            )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="shadow-lg hover:shadow-xl transition-shadow bg-background/95 backdrop-blur-sm"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload Files
+        </Button>
+        {binaryFilesCount > 0 && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onProcessBinaryFiles}
+            className="shadow-lg hover:shadow-xl transition-shadow"
           >
+            Process {binaryFilesCount} Binary File{binaryFilesCount > 1 ? 's' : ''}
+          </Button>
+        )}
+      </div>
+      {files.length > 0 && (
+        <div className="absolute top-16 right-4 max-w-md z-10">
+          <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg",
+                  "bg-background border border-border/50",
+                  "hover:border-primary transition-all hover:shadow-md group",
+                  file.isBinary && !file.isProcessed && "border-yellow-500"
+                )}
+              >
             <FileText className="h-4 w-4 text-primary" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -103,13 +100,13 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
               className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => onRemoveFile(file.id)}
             >
-              <X className="h-4 w-4" />
-            </Button>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
           </div>
-        ))}
         </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };
