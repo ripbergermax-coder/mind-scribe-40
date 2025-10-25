@@ -29,36 +29,41 @@ async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
     // Decode base64
     const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    const text = new TextDecoder('utf-8', { fatal: false }).decode(binaryData);
     
-    // Try to extract text between common PDF text markers
-    const textContent: string[] = [];
-    const streamRegex = /stream([\s\S]*?)endstream/g;
-    let match;
-    
-    while ((match = streamRegex.exec(text)) !== null) {
-      const streamContent = match[1];
-      // Remove binary data and extract readable text
-      const readable = streamContent.replace(/[^\x20-\x7E\n]/g, ' ').trim();
-      if (readable.length > 20) {
-        textContent.push(readable);
+    // Convert to text with better encoding handling
+    let text = '';
+    for (let i = 0; i < binaryData.length; i++) {
+      const byte = binaryData[i];
+      if ((byte >= 32 && byte <= 126) || byte === 10 || byte === 13) {
+        text += String.fromCharCode(byte);
+      } else {
+        text += ' ';
       }
     }
     
-    if (textContent.length > 0) {
-      return textContent.join('\n\n');
+    // Extract text between stream markers (common in PDFs)
+    const extractedChunks: string[] = [];
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      // Look for readable text (sequences of printable characters)
+      const matches = line.match(/[a-zA-Z0-9\s.,!?;:'"()-]{10,}/g);
+      if (matches) {
+        extractedChunks.push(...matches);
+      }
     }
     
-    // Fallback: extract any readable text
-    const extractedText = text.replace(/[^\x20-\x7E\n]/g, ' ').trim();
-    if (extractedText.length > 100) {
+    if (extractedChunks.length > 0) {
+      const extractedText = extractedChunks.join(' ').trim();
+      console.log(`Extracted ${extractedText.length} characters from PDF`);
       return extractedText;
     }
     
     throw new Error('Could not extract sufficient text from PDF');
   } catch (error) {
-    console.error('PDF extraction error:', error);
-    throw new Error('Failed to extract text from PDF');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('PDF extraction error:', errorMessage);
+    throw new Error(`Failed to extract text from PDF: ${errorMessage}`);
   }
 }
 
