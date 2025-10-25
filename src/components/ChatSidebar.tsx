@@ -212,22 +212,21 @@ const DraggableChat = ({
 
   return (
     <div 
-      ref={setNodeRef} 
-      {...attributes}
+      ref={setNodeRef}
       className={cn("relative group/item", isDragging && "opacity-50")}
     >
       <Button
+        {...listeners}
+        {...attributes}
         variant="ghost"
         className={cn(
-          "w-full justify-start hover:bg-sidebar-accent group",
+          "w-full justify-start hover:bg-sidebar-accent group cursor-grab active:cursor-grabbing",
           collapsed ? "px-2" : "pr-2",
           currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
         )}
         onClick={() => onSelectChat(chat.id)}
       >
-        <div {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
-          <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
+        <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
         {!collapsed && (
           <div className="flex-1 text-left overflow-hidden">
             <p className="text-sm truncate group-hover:text-primary transition-colors">{chat.title}</p>
@@ -243,6 +242,7 @@ const DraggableChat = ({
             variant="ghost"
             size="icon"
             className="h-6 w-6 hover:bg-primary/20 hover:text-primary"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onRenameChat(chat.id);
@@ -255,6 +255,7 @@ const DraggableChat = ({
             variant="ghost"
             size="icon"
             className="h-6 w-6 hover:bg-accent/20 hover:text-accent"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onMoveToProject(chat.id);
@@ -267,6 +268,7 @@ const DraggableChat = ({
             variant="ghost"
             size="icon"
             className="h-6 w-6 hover:bg-destructive/20 hover:text-destructive"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onDeleteChat(chat.id);
