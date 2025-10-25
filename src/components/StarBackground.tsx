@@ -26,6 +26,8 @@ const StarBackground = () => {
       speedX: number;
       speedY: number;
       opacity: number;
+      rotation: number;
+      rotationSpeed: number;
     }
 
     const stars: Star[] = [];
@@ -36,12 +38,39 @@ const StarBackground = () => {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 2,
-        speedX: (Math.random() - 0.5) * 0.5,
-        speedY: (Math.random() - 0.5) * 0.5,
-        opacity: Math.random() * 0.5 + 0.5,
+        size: Math.random() * 8 + 4,
+        speedX: (Math.random() - 0.5) * 0.3,
+        speedY: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.4 + 0.3,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.02,
       });
     }
+
+    // Function to draw a 4-point star (tacto.ai style)
+    const drawStar = (x: number, y: number, size: number, rotation: number, opacity: number) => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      
+      ctx.beginPath();
+      // Draw a 4-point diamond/star shape
+      ctx.moveTo(0, -size); // Top point
+      ctx.lineTo(size * 0.3, 0); // Right middle
+      ctx.lineTo(0, size); // Bottom point
+      ctx.lineTo(-size * 0.3, 0); // Left middle
+      ctx.closePath();
+      
+      // Orange gradient like tacto.ai logo
+      const gradient = ctx.createLinearGradient(-size, -size, size, size);
+      gradient.addColorStop(0, `rgba(255, 107, 53, ${opacity})`); // Bright orange
+      gradient.addColorStop(1, `rgba(255, 140, 80, ${opacity})`); // Lighter orange
+      
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      ctx.restore();
+    };
 
     // Animation loop
     const animate = () => {
@@ -51,18 +80,16 @@ const StarBackground = () => {
         // Update position
         star.x += star.speedX;
         star.y += star.speedY;
+        star.rotation += star.rotationSpeed;
 
         // Wrap around edges
-        if (star.x < 0) star.x = canvas.width;
-        if (star.x > canvas.width) star.x = 0;
-        if (star.y < 0) star.y = canvas.height;
-        if (star.y > canvas.height) star.y = 0;
+        if (star.x < -50) star.x = canvas.width + 50;
+        if (star.x > canvas.width + 50) star.x = -50;
+        if (star.y < -50) star.y = canvas.height + 50;
+        if (star.y > canvas.height + 50) star.y = -50;
 
         // Draw star
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-        ctx.fill();
+        drawStar(star.x, star.y, star.size, star.rotation, star.opacity);
       });
 
       requestAnimationFrame(animate);
