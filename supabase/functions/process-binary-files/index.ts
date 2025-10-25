@@ -247,40 +247,50 @@ serve(async (req) => {
 
       console.log(`Extracted ${extractedText.length} characters from ${fileData.file_name}`);
 
-      // Chunk the extracted text
-      const chunks = chunkText(extractedText);
-      console.log(`Split into ${chunks.length} chunks`);
-
-      // Upload chunks to Weaviate
-      const batchSize = 100;
-      for (let i = 0; i < chunks.length; i += batchSize) {
-        const batch = chunks.slice(i, i + batchSize);
-        
-        const objects = batch.map((chunk, idx) => ({
-          class: CLASS_NAME,
-          properties: {
-            content: chunk,
-            title: fileData.file_name,
-            document_name: fileData.file_name,
-            chunk_index: i + idx,
-          },
-        }));
-
-        const batchResponse = await fetch(`${formattedUrl}/v1/batch/objects`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${weaviateApiKey}`,
-            'Content-Type': 'application/json',
-            'X-OpenAI-Api-Key': openaiApiKey,
-          },
-          body: JSON.stringify({ objects }),
+      // Save extracted text as TXT file
+      const txtFileName = fileData.file_name.replace(/\.[^/.]+$/, '.txt');
+      const txtPath = userId ? `${userId}/${txtFileName}` : `anonymous/${txtFileName}`;
+      
+      const txtBlob = new Blob([extractedText], { type: 'text/plain' });
+      
+      const { error: txtUploadError } = await supabase.storage
+        .from('uploaded-files')
+        .upload(txtPath, txtBlob, {
+          contentType: 'text/plain',
+          upsert: true,
         });
 
-        if (!batchResponse.ok) {
-          const errorText = await batchResponse.text();
-          console.error(`Batch insert failed: ${errorText}`);
-          throw new Error(`Failed to insert batch: ${errorText}`);
-        }
+      if (txtUploadError) {
+        console.error(`Failed to save TXT file: ${txtUploadError.message}`);
+      } else {
+        console.log(`Saved extracted text as: ${txtPath}`);
+      }
+
+      // Upload complete text to Weaviate (without chunking)
+      const weaviateObject = {
+        class: CLASS_NAME,
+        properties: {
+          content: extractedText,
+          title: fileData.file_name,
+          document_name: fileData.file_name,
+          chunk_index: 0,
+        },
+      };
+
+      const weaviateResponse = await fetch(`${formattedUrl}/v1/objects`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${weaviateApiKey}`,
+          'Content-Type': 'application/json',
+          'X-OpenAI-Api-Key': openaiApiKey,
+        },
+        body: JSON.stringify(weaviateObject),
+      });
+
+      if (!weaviateResponse.ok) {
+        const errorText = await weaviateResponse.text();
+        console.error(`Weaviate insert failed: ${errorText}`);
+        throw new Error(`Failed to insert to Weaviate: ${errorText}`);
       }
 
       // Update file metadata
@@ -292,7 +302,7 @@ serve(async (req) => {
       processedFiles.push({
         id: fileId,
         name: fileData.file_name,
-        chunks: chunks.length,
+        txtFile: txtFileName,
         extractedLength: extractedText.length,
       });
 
