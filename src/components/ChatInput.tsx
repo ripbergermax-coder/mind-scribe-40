@@ -126,21 +126,29 @@ const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, on
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant={isRecording ? "destructive" : "outline"}
-              size="icon"
-              onClick={handleMicClick}
-              className={cn(
-                "flex-shrink-0 transition-all",
-                isRecording && "animate-pulse bg-destructive"
+            <div className="relative">
+              {isRecording && (
+                <>
+                  <div className="absolute inset-0 rounded-md bg-destructive/20 animate-ping" />
+                  <div className="absolute inset-0 rounded-md bg-destructive/30 animate-pulse" />
+                </>
               )}
-            >
-              {isRecording ? (
-                <MicOff className="h-5 w-5" />
-              ) : (
-                <Mic className="h-5 w-5" />
-              )}
-            </Button>
+              <Button
+                variant={isRecording ? "destructive" : "outline"}
+                size="icon"
+                onClick={handleMicClick}
+                className={cn(
+                  "flex-shrink-0 transition-all relative z-10",
+                  isRecording && "shadow-[0_0_20px_rgba(239,68,68,0.5)]"
+                )}
+              >
+                {isRecording ? (
+                  <MicOff className="h-5 w-5 animate-pulse" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
 
             <Button
               onClick={handleSend}
