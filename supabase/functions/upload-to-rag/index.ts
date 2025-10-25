@@ -137,16 +137,35 @@ serve(async (req) => {
       if (name.toLowerCase().endsWith('.json')) {
         try {
           let items;
+          
+          // First try to parse as standard JSON
           try {
             items = JSON.parse(content);
+            // Handle both array and single object
+            if (!Array.isArray(items)) {
+              items = [items];
+            }
           } catch (parseError) {
-            console.error(`Invalid JSON in ${name}:`, parseError);
-            throw new Error(`Invalid JSON format in ${name}. Please ensure the file contains valid JSON.`);
-          }
-
-          // Handle both array and single object
-          if (!Array.isArray(items)) {
-            items = [items];
+            // If standard JSON fails, try JSONL format (one JSON object per line)
+            console.log(`Standard JSON parse failed for ${name}, trying JSONL format...`);
+            const lines = content.trim().split('\n').filter((line: string) => line.trim());
+            items = [];
+            
+            for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+              const line = lines[lineNum].trim();
+              if (!line) continue;
+              
+              try {
+                const obj = JSON.parse(line);
+                items.push(obj);
+              } catch (lineError) {
+                console.warn(`Skipping invalid JSON at line ${lineNum + 1}: ${line.substring(0, 50)}...`);
+              }
+            }
+            
+            if (items.length === 0) {
+              throw new Error(`Could not parse ${name} as JSON or JSONL format. Please ensure the file contains valid JSON.`);
+            }
           }
 
           console.log(`JSON file with ${items.length} items`);
