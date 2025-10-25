@@ -42,28 +42,24 @@ export async function sendToN8N(payload: N8NWebhookPayload): Promise<N8NWebhookR
     };
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
+      mode: 'no-cors', // Handle CORS restrictions
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
+    // With no-cors mode, we can't read the response properly
+    // but the request will still be sent to N8N
     return {
       success: true,
-      message: 'Data successfully sent to N8N',
-      data
+      message: 'Data sent to N8N (check N8N workflow history to confirm)',
     };
 
   } catch (error) {
     console.error('Error sending data to N8N:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to send data to N8N. Please check the webhook URL and N8N workflow configuration.'
     };
   }
 }
@@ -85,8 +81,9 @@ export async function sendToN8NAsJSON(payload: {
   metadata?: Record<string, any>;
 }): Promise<N8NWebhookResponse> {
   try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
+      mode: 'no-cors', // Handle CORS restrictions
       headers: {
         'Content-Type': 'application/json',
       },
@@ -102,23 +99,18 @@ export async function sendToN8NAsJSON(payload: {
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
+    // With no-cors mode, we can't read the response properly
+    // but the request will still be sent to N8N
     return {
       success: true,
-      message: 'Data successfully sent to N8N',
-      data
+      message: 'Data sent to N8N (check N8N workflow history to confirm)',
     };
 
   } catch (error) {
     console.error('Error sending data to N8N:', error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to send data to N8N. Please check the webhook URL and N8N workflow configuration.'
     };
   }
 }
