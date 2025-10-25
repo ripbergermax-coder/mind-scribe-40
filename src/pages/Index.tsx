@@ -661,6 +661,49 @@ const Index = () => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const handleUploadFiles = async (files: File[]) => {
+    const fileDataPromises = files.map(async (file) => {
+      const content = await file.text();
+      return {
+        name: file.name,
+        content,
+      };
+    });
+
+    const fileData = await Promise.all(fileDataPromises);
+
+    try {
+      const response = await supabase.functions.invoke('upload-to-rag', {
+        body: { files: fileData },
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      toast({
+        title: "Success",
+        description: `${files.length} file(s) uploaded to RAG storage`,
+      });
+
+      // Add to UI state
+      const newFiles = files.map((file) => ({
+        id: Date.now().toString() + Math.random(),
+        name: file.name,
+        size: `${(file.size / 1024).toFixed(1)} KB`,
+      }));
+
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload files to RAG storage",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleToggleVoice = () => {
     setIsVoiceMode(!isVoiceMode);
     toast({
@@ -728,7 +771,7 @@ const Index = () => {
         </div>
 
         {/* Document Upload Area */}
-        <DocumentUpload files={uploadedFiles} onRemoveFile={handleRemoveFile} />
+        <DocumentUpload files={uploadedFiles} onRemoveFile={handleRemoveFile} onUploadFiles={handleUploadFiles} />
 
         {/* Messages */}
         <ScrollArea className="flex-1 relative">
