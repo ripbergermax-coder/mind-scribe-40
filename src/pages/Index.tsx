@@ -7,6 +7,7 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import DocumentUpload from "@/components/DocumentUpload";
 import { useToast } from "@/components/ui/use-toast";
+import { sendToN8N, sendTextToN8N } from "@/services/n8n";
 
 interface Message {
   id: string;
@@ -35,7 +36,7 @@ const Index = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -44,6 +45,21 @@ const Index = () => {
     };
     
     setMessages(prev => [...prev, userMessage]);
+
+    // Send to N8N
+    const n8nResponse = await sendTextToN8N(content, {
+      messageId: userMessage.id,
+      source: 'chat',
+      isVoiceMode
+    });
+
+    if (!n8nResponse.success) {
+      toast({
+        title: "N8N Error",
+        description: n8nResponse.message,
+        variant: "destructive"
+      });
+    }
 
     // Simulate AI response
     setTimeout(() => {
@@ -57,7 +73,7 @@ const Index = () => {
     }, 1000);
   };
 
-  const handleFileUpload = (files: FileList) => {
+  const handleFileUpload = async (files: FileList) => {
     const newFiles: UploadedFile[] = Array.from(files).map(file => ({
       id: Date.now().toString() + file.name,
       name: file.name,
@@ -65,9 +81,32 @@ const Index = () => {
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
+
+    // Send each file to N8N
+    for (const file of Array.from(files)) {
+      const n8nResponse = await sendToN8N({
+        textPrompt: `Document uploaded: ${file.name}`,
+        document: file,
+        metadata: {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          source: 'upload'
+        }
+      });
+
+      if (!n8nResponse.success) {
+        toast({
+          title: "N8N Error",
+          description: `Failed to send ${file.name} to N8N`,
+          variant: "destructive"
+        });
+      }
+    }
+
     toast({
       title: "Files uploaded",
-      description: `${newFiles.length} file(s) ready for processing`
+      description: `${newFiles.length} file(s) sent to N8N for processing`
     });
   };
 
