@@ -29,9 +29,9 @@ export async function sendToN8N(payload) {
     formData.append('textPrompt', payload.textPrompt || '');
     formData.append('textType', textType);
     
-    // Add audio file (if available)
+    // Add audio file (if available) - use 'file' as field name for n8n binary detection
     if (payload.audioFile) {
-      formData.append('audioFile', payload.audioFile);
+      formData.append('file', payload.audioFile, payload.audioFile.name || 'audio.webm');
     }
     
     // Add document (if available)
