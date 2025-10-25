@@ -49,23 +49,24 @@ const Index = () => {
         {
           id: "1",
           role: "assistant",
-          content: "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
-          timestamp: "just now"
-        }
-      ]
-    }
+          content:
+            "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
+          timestamp: "just now",
+        },
+      ],
+    },
   ]);
   const [projects, setProjects] = useState<Project[]>([
     {
       id: "1",
       name: "Personal",
-      chats: []
-    }
+      chats: [],
+    },
   ]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
 
-  const currentChat = chats.find(c => c.id === currentChatId);
+  const currentChat = chats.find((c) => c.id === currentChatId);
   const messages = currentChat?.messages || [];
 
   const handleCreateNewChat = () => {
@@ -77,17 +78,18 @@ const Index = () => {
         {
           id: Date.now().toString(),
           role: "assistant",
-          content: "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
-          timestamp: "just now"
-        }
-      ]
+          content:
+            "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
+          timestamp: "just now",
+        },
+      ],
     };
-    setChats(prev => [newChat, ...prev]);
+    setChats((prev) => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
     setUploadedFiles([]);
     toast({
       title: "New chat created",
-      description: "Started a fresh conversation"
+      description: "Started a fresh conversation",
     });
   };
 
@@ -97,9 +99,9 @@ const Index = () => {
   };
 
   const handleDeleteChat = (chatId: string) => {
-    setChats(prev => prev.filter(c => c.id !== chatId));
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
     if (currentChatId === chatId) {
-      const remainingChats = chats.filter(c => c.id !== chatId);
+      const remainingChats = chats.filter((c) => c.id !== chatId);
       if (remainingChats.length > 0) {
         setCurrentChatId(remainingChats[0].id);
       } else {
@@ -108,7 +110,7 @@ const Index = () => {
     }
     toast({
       title: "Chat deleted",
-      description: "Conversation removed"
+      description: "Conversation removed",
     });
   };
 
@@ -116,20 +118,20 @@ const Index = () => {
     const newProject: Project = {
       id: Date.now().toString(),
       name: "New Project",
-      chats: []
+      chats: [],
     };
-    setProjects(prev => [...prev, newProject]);
+    setProjects((prev) => [...prev, newProject]);
     toast({
       title: "Project created",
-      description: "New project added"
+      description: "New project added",
     });
   };
 
   const handleDeleteProject = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
     toast({
       title: "Project deleted",
-      description: "Project removed"
+      description: "Project removed",
     });
   };
 
@@ -138,66 +140,57 @@ const Index = () => {
       id: Date.now().toString(),
       role: "user",
       content,
-      timestamp: "just now"
+      timestamp: "just now",
     };
-    
-    setChats(prev => prev.map(chat => 
-      chat.id === currentChatId 
-        ? { ...chat, messages: [...chat.messages, userMessage] }
-        : chat
-    ));
+
+    setChats((prev) =>
+      prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, userMessage] } : chat)),
+    );
 
     // Update chat title if it's the first user message
     if (currentChat && currentChat.messages.length === 1) {
       const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
-      setChats(prev => prev.map(chat =>
-        chat.id === currentChatId
-          ? { ...chat, title }
-          : chat
-      ));
+      setChats((prev) => prev.map((chat) => (chat.id === currentChatId ? { ...chat, title } : chat)));
     }
 
     try {
       // Send to N8N and wait for RAG response
-      const n8nResponse = await sendToN8N({
-        textPrompt: content,
-        metadata: {
-          messageId: userMessage.id,
-          chatId: currentChatId,
-          source: 'chat',
-          isVoiceMode
-        }
+      const n8nResponse = await sendTextToN8N(content, {
+        messageId: userMessage.id,
+        chatId: currentChatId,
+        source: "chat",
+        isVoiceMode,
       });
 
       // DEBUG: Log the actual response to see what we get
-      console.log('N8N Full Response:', n8nResponse);
-      console.log('N8N Response Data:', n8nResponse.data);
+      console.log("N8N Full Response:", n8nResponse);
+      console.log("N8N Response Data:", n8nResponse.data);
 
       if (!n8nResponse.success) {
         toast({
           title: "Error",
           description: n8nResponse.message,
-          variant: "destructive"
+          variant: "destructive",
         });
-        
+
         // Show error message in chat
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
           content: "Sorry, I encountered an error processing your request. Please try again.",
-          timestamp: "just now"
+          timestamp: "just now",
         };
-        setChats(prev => prev.map(chat =>
-          chat.id === currentChatId
-            ? { ...chat, messages: [...chat.messages, errorMessage] }
-            : chat
-        ));
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.id === currentChatId ? { ...chat, messages: [...chat.messages, errorMessage] } : chat,
+          ),
+        );
         return;
       }
 
       // Extract the actual AI response from multiple possible paths
       let aiResponseContent = "I received your message but couldn't generate a response.";
-      
+
       // Try different possible response paths from n8n
       if (n8nResponse.data?.data?.response) {
         // Path: data.data.response
@@ -208,7 +201,7 @@ const Index = () => {
       } else if (n8nResponse.data?.message) {
         // Path: data.message
         aiResponseContent = n8nResponse.data.message;
-      } else if (typeof n8nResponse.data === 'string') {
+      } else if (typeof n8nResponse.data === "string") {
         // Direct string response
         aiResponseContent = n8nResponse.data;
       } else if (n8nResponse.data?.choices?.[0]?.message?.content) {
@@ -216,40 +209,37 @@ const Index = () => {
         aiResponseContent = n8nResponse.data.choices[0].message.content;
       }
 
-      console.log('Extracted AI Response:', aiResponseContent);
+      console.log("Extracted AI Response:", aiResponseContent);
 
       // Use actual RAG response from N8N
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: aiResponseContent,
-        timestamp: "just now"
+        timestamp: "just now",
       };
-      
-      setChats(prev => prev.map(chat =>
-        chat.id === currentChatId
-          ? { ...chat, messages: [...chat.messages, aiMessage] }
-          : chat
-      ));
 
+      setChats((prev) =>
+        prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, aiMessage] } : chat)),
+      );
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleFileUpload = async (files: FileList) => {
-    const newFiles: UploadedFile[] = Array.from(files).map(file => ({
+    const newFiles: UploadedFile[] = Array.from(files).map((file) => ({
       id: Date.now().toString() + file.name,
       name: file.name,
-      size: (file.size / 1024).toFixed(1) + " KB"
+      size: (file.size / 1024).toFixed(1) + " KB",
     }));
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
 
     // Send each file to N8N
     for (const file of Array.from(files)) {
@@ -261,41 +251,41 @@ const Index = () => {
           fileSize: file.size,
           fileType: file.type,
           chatId: currentChatId,
-          source: 'upload'
-        }
+          source: "upload",
+        },
       });
 
       if (!n8nResponse.success) {
         toast({
           title: "N8N Error",
           description: `Failed to send ${file.name} to N8N`,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
 
     toast({
       title: "Files uploaded",
-      description: `${newFiles.length} file(s) sent to N8N for processing`
+      description: `${newFiles.length} file(s) sent to N8N for processing`,
     });
   };
 
   const handleRemoveFile = (id: string) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== id));
+    setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
   const handleToggleVoice = () => {
     setIsVoiceMode(!isVoiceMode);
     toast({
       title: isVoiceMode ? "Voice mode disabled" : "Voice mode enabled",
-      description: isVoiceMode ? "Switched to text mode" : "You can now speak to the AI"
+      description: isVoiceMode ? "Switched to text mode" : "You can now speak to the AI",
     });
   };
 
   return (
     <div className="flex h-screen w-full bg-background">
       <ChatSidebar
-        collapsed={sidebarCollapsed} 
+        collapsed={sidebarCollapsed}
         chats={chats}
         projects={projects}
         currentChatId={currentChatId}
@@ -305,7 +295,7 @@ const Index = () => {
         onCreateProject={handleCreateProject}
         onDeleteProject={handleDeleteProject}
       />
-      
+
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
