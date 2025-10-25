@@ -93,9 +93,29 @@ serve(async (req) => {
           },
           properties: [
             {
-              name: 'content',
+              name: 'text',
               dataType: ['text'],
-              description: 'Chunk text',
+              description: 'Chunk text content',
+            },
+            {
+              name: 'source',
+              dataType: ['text'],
+              description: 'Source of the text',
+            },
+            {
+              name: 'blobType',
+              dataType: ['text'],
+              description: 'Type of blob/content',
+            },
+            {
+              name: 'loc_lines_from',
+              dataType: ['number'],
+              description: 'Starting line number',
+            },
+            {
+              name: 'loc_lines_to',
+              dataType: ['number'],
+              description: 'Ending line number',
             },
             {
               name: 'document_name',
@@ -321,7 +341,12 @@ serve(async (req) => {
         const objects = batch.map((chunk, idx) => ({
           class: CLASS_NAME,
           properties: {
-            content: chunk.content,
+            text: chunk.content,
+            source: 'upload',
+            blobType: ext.endsWith('.json') || ext.endsWith('.jsonl') ? 'json' : 
+                      ext.endsWith('.csv') ? 'csv' : 'text',
+            loc_lines_from: i + idx,
+            loc_lines_to: i + idx + 1,
             title: chunk.title,
             document_name: name,
             chunk_index: i + idx,
