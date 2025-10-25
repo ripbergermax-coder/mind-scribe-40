@@ -469,10 +469,8 @@ const Index = () => {
       // Extract the AI response from N8N webhook response
       let aiResponseContent = "I received your message but couldn't generate a response.";
 
-      // N8N webhook returns: { message: { content: "AI response" } }
-      if (n8nResponse.data?.message?.content) {
-        aiResponseContent = n8nResponse.data.message.content;
-      } else if (n8nResponse.data?.message) {
+      // N8N webhook returns: { success: true, message: "AI response text" }
+      if (n8nResponse.data?.message && typeof n8nResponse.data.message === "string") {
         aiResponseContent = n8nResponse.data.message;
       } else if (typeof n8nResponse.data === "string") {
         aiResponseContent = n8nResponse.data;
