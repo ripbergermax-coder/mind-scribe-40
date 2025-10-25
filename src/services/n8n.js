@@ -1,22 +1,9 @@
-interface N8NWebhookPayload {
-  textPrompt: string;
-  audioFile?: File;
-  document?: File;
-  metadata?: Record<string, any>;
-}
-
-interface N8NWebhookResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-}
-
 const N8N_WEBHOOK_URL = 'https://customm.app.n8n.cloud/webhook/b787719b-fce6-4896-94d7-51bb862af30f';
 
 /**
  * Sends data (text, audio, documents) to N8N webhook
  */
-export async function sendToN8N(payload: N8NWebhookPayload): Promise<N8NWebhookResponse> {
+export async function sendToN8N(payload) {
   try {
     const formData = new FormData();
     
@@ -72,19 +59,14 @@ export async function sendToN8N(payload: N8NWebhookPayload): Promise<N8NWebhookR
 /**
  * Sends only text (without files)
  */
-export async function sendTextToN8N(textPrompt: string, metadata?: Record<string, any>): Promise<N8NWebhookResponse> {
+export async function sendTextToN8N(textPrompt, metadata) {
   return sendToN8N({ textPrompt, metadata });
 }
 
 /**
  * Sends data as JSON (for smaller files as Base64)
  */
-export async function sendToN8NAsJSON(payload: {
-  textPrompt: string;
-  audioBase64?: string;
-  documentBase64?: string;
-  metadata?: Record<string, any>;
-}): Promise<N8NWebhookResponse> {
+export async function sendToN8NAsJSON(payload) {
   try {
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
@@ -129,11 +111,11 @@ export async function sendToN8NAsJSON(payload: {
 /**
  * Helper function: Converts File to Base64
  */
-export function fileToBase64(file: File): Promise<string> {
+export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => resolve(reader.result);
     reader.onerror = error => reject(error);
   });
 }
