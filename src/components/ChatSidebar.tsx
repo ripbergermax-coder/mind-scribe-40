@@ -213,20 +213,21 @@ const DraggableChat = ({
   return (
     <div 
       ref={setNodeRef} 
-      {...listeners} 
       {...attributes}
       className={cn("relative group/item", isDragging && "opacity-50")}
     >
       <Button
         variant="ghost"
         className={cn(
-          "w-full justify-start hover:bg-sidebar-accent group cursor-grab active:cursor-grabbing",
+          "w-full justify-start hover:bg-sidebar-accent group",
           collapsed ? "px-2" : "pr-2",
           currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
         )}
         onClick={() => onSelectChat(chat.id)}
       >
-        <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+        <div {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+          <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+        </div>
         {!collapsed && (
           <div className="flex-1 text-left overflow-hidden">
             <p className="text-sm truncate group-hover:text-primary transition-colors">{chat.title}</p>
