@@ -563,17 +563,31 @@ const Index = () => {
       // Extract the AI response from N8N webhook response
       let aiResponseContent = "I received your message but couldn't generate a response.";
 
-      // Handle different response structures
+      console.log("N8N Response Data:", n8nResponse.data);
+      console.log("Message field:", n8nResponse.data?.message);
+      console.log("Message type:", typeof n8nResponse.data?.message);
+
+      // Handle different response structures - ensure we always extract a string
       if (n8nResponse.data?.message) {
-        // Check if message is an object with content property
-        if (typeof n8nResponse.data.message === 'object' && n8nResponse.data.message.content) {
-          aiResponseContent = n8nResponse.data.message.content;
+        const messageField = n8nResponse.data.message;
+        
+        // If message is a string, use it directly
+        if (typeof messageField === 'string') {
+          aiResponseContent = messageField;
         } 
-        // Check if message is a string
-        else if (typeof n8nResponse.data.message === 'string') {
-          aiResponseContent = n8nResponse.data.message;
+        // If message is an object with content property, extract the content
+        else if (messageField && typeof messageField === 'object' && 'content' in messageField) {
+          const content = messageField.content;
+          // Make sure content is a string
+          aiResponseContent = typeof content === 'string' ? content : String(content);
         }
-      } else if (typeof n8nResponse.data === "string") {
+        // Fallback: try to stringify if nothing else works
+        else {
+          aiResponseContent = String(messageField);
+        }
+      } 
+      // If data itself is a string, use it
+      else if (typeof n8nResponse.data === "string") {
         aiResponseContent = n8nResponse.data;
       }
 
@@ -704,12 +718,27 @@ const Index = () => {
       // Handle N8N response
       let aiResponseContent = "Audio processed but no response received.";
 
-      if (n8nResponse.data?.data?.response) {
-        aiResponseContent = n8nResponse.data.data.response;
+      // Handle different response structures - ensure we always extract a string
+      if (n8nResponse.data?.message) {
+        const messageField = n8nResponse.data.message;
+        
+        // If message is a string, use it directly
+        if (typeof messageField === 'string') {
+          aiResponseContent = messageField;
+        } 
+        // If message is an object with content property, extract the content
+        else if (messageField && typeof messageField === 'object' && 'content' in messageField) {
+          const content = messageField.content;
+          aiResponseContent = typeof content === 'string' ? content : String(content);
+        }
+        else {
+          aiResponseContent = String(messageField);
+        }
+      }
+      else if (n8nResponse.data?.data?.response) {
+        aiResponseContent = String(n8nResponse.data.data.response);
       } else if (n8nResponse.data?.response) {
-        aiResponseContent = n8nResponse.data.response;
-      } else if (n8nResponse.data?.message) {
-        aiResponseContent = n8nResponse.data.message;
+        aiResponseContent = String(n8nResponse.data.response);
       } else if (typeof n8nResponse.data === "string") {
         aiResponseContent = n8nResponse.data;
       }
