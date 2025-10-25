@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CLASS_NAME = "TactoCollection";
+const CLASS_NAME = "SeymenTest";
 
 // Chunk text into smaller pieces with overlap
 function chunkText(text: string, chunkSize: number = 220, overlap: number = 40): string[] {
