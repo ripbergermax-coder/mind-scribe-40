@@ -134,12 +134,12 @@ const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, on
                 size="icon"
                 onClick={handleMicClick}
                 className={cn(
-                  "flex-shrink-0 transition-all relative z-10",
-                  isRecording && "bg-primary hover:bg-primary/90 shadow-[0_0_20px_rgba(255,119,0,0.4)]"
+                  "flex-shrink-0 transition-all relative z-10 w-12 h-12",
+                  isRecording && "bg-transparent hover:bg-transparent border-transparent opacity-0"
                 )}
               >
                 {isRecording ? (
-                  <MicOff className="h-5 w-5" />
+                  <MicOff className="h-5 w-5 opacity-0" />
                 ) : (
                   <Mic className="h-5 w-5" />
                 )}
