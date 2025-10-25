@@ -1,18 +1,24 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Send, Paperclip, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   onFileUpload: (files: FileList) => void;
+  onAudioUpload: (audioBlob: Blob) => void;
   isVoiceMode: boolean;
   onToggleVoice: () => void;
 }
 
-const ChatInput = ({ onSendMessage, onFileUpload, isVoiceMode, onToggleVoice }: ChatInputProps) => {
+const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, onToggleVoice }: ChatInputProps) => {
   const [message, setMessage] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const { toast } = useToast();
 
   const handleSend = () => {
     if (message.trim()) {
@@ -25,6 +31,67 @@ const ChatInput = ({ onSendMessage, onFileUpload, isVoiceMode, onToggleVoice }: 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        onAudioUpload(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      toast({
+        title: "Recording started",
+        description: "Speak now...",
+      });
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      toast({
+        title: "Microphone error",
+        description: "Unable to access microphone",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      toast({
+        title: "Recording stopped",
+        description: "Processing audio...",
+      });
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isVoiceMode && isRecording) {
+      stopRecording();
+    }
+    onToggleVoice();
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -60,15 +127,15 @@ const ChatInput = ({ onSendMessage, onFileUpload, isVoiceMode, onToggleVoice }: 
 
           <div className="flex gap-2">
             <Button
-              variant={isVoiceMode ? "default" : "outline"}
+              variant={isRecording ? "destructive" : "outline"}
               size="icon"
-              onClick={onToggleVoice}
+              onClick={handleMicClick}
               className={cn(
                 "flex-shrink-0 transition-all",
-                isVoiceMode && "bg-gradient-to-br from-primary to-accent shadow-glow"
+                isRecording && "animate-pulse bg-destructive"
               )}
             >
-              {isVoiceMode ? (
+              {isRecording ? (
                 <MicOff className="h-5 w-5" />
               ) : (
                 <Mic className="h-5 w-5" />

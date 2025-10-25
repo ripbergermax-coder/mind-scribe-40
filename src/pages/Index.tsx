@@ -270,6 +270,64 @@ const Index = () => {
     });
   };
 
+  const handleAudioUpload = async (audioBlob: Blob) => {
+    try {
+      const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, {
+        type: "audio/webm",
+      });
+
+      const n8nResponse = await sendToN8N({
+        textPrompt: "",
+        audioFile: audioFile,
+        metadata: {
+          chatId: currentChatId,
+          source: "voice",
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      if (!n8nResponse.success) {
+        toast({
+          title: "Error",
+          description: "Failed to process audio",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Handle response similar to text messages
+      let aiResponseContent = "Audio processed but no response received.";
+
+      if (n8nResponse.data?.data?.response) {
+        aiResponseContent = n8nResponse.data.data.response;
+      } else if (n8nResponse.data?.response) {
+        aiResponseContent = n8nResponse.data.response;
+      } else if (n8nResponse.data?.message) {
+        aiResponseContent = n8nResponse.data.message;
+      } else if (typeof n8nResponse.data === "string") {
+        aiResponseContent = n8nResponse.data;
+      }
+
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: aiResponseContent,
+        timestamp: "just now",
+      };
+
+      setChats((prev) =>
+        prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, aiMessage] } : chat)),
+      );
+    } catch (error) {
+      console.error("Error uploading audio:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload audio",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRemoveFile = (id: string) => {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
   };
@@ -335,6 +393,7 @@ const Index = () => {
         <ChatInput
           onSendMessage={handleSendMessage}
           onFileUpload={handleFileUpload}
+          onAudioUpload={handleAudioUpload}
           isVoiceMode={isVoiceMode}
           onToggleVoice={handleToggleVoice}
         />
