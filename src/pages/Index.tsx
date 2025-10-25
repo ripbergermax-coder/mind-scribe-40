@@ -60,6 +60,7 @@ const Index = () => {
   const [renamingItem, setRenamingItem] = useState<{ type: "chat" | "project"; id: string; name: string } | null>(null);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [movingChat, setMovingChat] = useState<Chat | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<{ type: "chat" | "project"; id: string; timeout: NodeJS.Timeout } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -204,34 +205,72 @@ const Index = () => {
   };
 
   const handleDeleteChat = async (chatId: string) => {
-    try {
-      const { error } = await supabase.from("chats").delete().eq("id", chatId);
+    const chatToDelete = chats.find((c) => c.id === chatId);
+    if (!chatToDelete) return;
 
-      if (error) throw error;
-
-      setChats((prev) => prev.filter((c) => c.id !== chatId));
-
-      if (currentChatId === chatId) {
-        const remainingChats = chats.filter((c) => c.id !== chatId);
-        if (remainingChats.length > 0) {
-          setCurrentChatId(remainingChats[0].id);
-        } else {
-          handleCreateNewChat();
-        }
-      }
-
-      toast({
-        title: "Chat deleted",
-        description: "Conversation removed",
-      });
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete chat",
-        variant: "destructive",
-      });
+    // Clear any existing pending deletion
+    if (pendingDeletion) {
+      clearTimeout(pendingDeletion.timeout);
     }
+
+    // Optimistically remove from UI
+    setChats((prev) => prev.filter((c) => c.id !== chatId));
+
+    // Handle current chat navigation
+    if (currentChatId === chatId) {
+      const remainingChats = chats.filter((c) => c.id !== chatId);
+      if (remainingChats.length > 0) {
+        setCurrentChatId(remainingChats[0].id);
+      } else {
+        handleCreateNewChat();
+      }
+    }
+
+    // Set up delayed deletion with undo
+    const timeout = setTimeout(async () => {
+      try {
+        const { error } = await supabase.from("chats").delete().eq("id", chatId);
+        if (error) throw error;
+        setPendingDeletion(null);
+      } catch (error) {
+        console.error("Error deleting chat:", error);
+        // Restore the chat on error
+        setChats((prev) => [...prev, chatToDelete].sort((a, b) => 
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        ));
+        toast({
+          title: "Error",
+          description: "Failed to delete chat",
+          variant: "destructive",
+        });
+      }
+    }, 5000);
+
+    setPendingDeletion({ type: "chat", id: chatId, timeout });
+
+    // Show undo toast
+    toast({
+      title: "Chat deleted",
+      description: "Undo to restore",
+      action: (
+        <button
+          onClick={() => {
+            clearTimeout(timeout);
+            setPendingDeletion(null);
+            setChats((prev) => [...prev, chatToDelete].sort((a, b) => 
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            ));
+            toast({
+              title: "Restored",
+              description: "Chat has been restored",
+            });
+          }}
+          className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Undo
+        </button>
+      ),
+    });
   };
 
   const handleRenameChat = (chatId: string) => {
@@ -303,24 +342,58 @@ const Index = () => {
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    try {
-      const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    const projectToDelete = projects.find((p) => p.id === projectId);
+    if (!projectToDelete) return;
 
-      if (error) throw error;
-
-      setProjects((prev) => prev.filter((p) => p.id !== projectId));
-      toast({
-        title: "Project deleted",
-        description: "Project removed",
-      });
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete project",
-        variant: "destructive",
-      });
+    // Clear any existing pending deletion
+    if (pendingDeletion) {
+      clearTimeout(pendingDeletion.timeout);
     }
+
+    // Optimistically remove from UI
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+    // Set up delayed deletion with undo
+    const timeout = setTimeout(async () => {
+      try {
+        const { error } = await supabase.from("projects").delete().eq("id", projectId);
+        if (error) throw error;
+        setPendingDeletion(null);
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        // Restore the project on error
+        setProjects((prev) => [...prev, projectToDelete]);
+        toast({
+          title: "Error",
+          description: "Failed to delete project",
+          variant: "destructive",
+        });
+      }
+    }, 5000);
+
+    setPendingDeletion({ type: "project", id: projectId, timeout });
+
+    // Show undo toast
+    toast({
+      title: "Project deleted",
+      description: "Undo to restore",
+      action: (
+        <button
+          onClick={() => {
+            clearTimeout(timeout);
+            setPendingDeletion(null);
+            setProjects((prev) => [...prev, projectToDelete]);
+            toast({
+              title: "Restored",
+              description: "Project has been restored",
+            });
+          }}
+          className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Undo
+        </button>
+      ),
+    });
   };
 
   const handleRenameProject = (projectId: string) => {
