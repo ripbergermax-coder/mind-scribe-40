@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { ToastAction } from "@/components/ui/toast";
 import ChatSidebar from "@/components/ChatSidebar";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -11,7 +12,7 @@ import DocumentUpload from "@/components/DocumentUpload";
 import StarBackground from "@/components/StarBackground";
 import RenameDialog from "@/components/RenameDialog";
 import ProjectDialog from "@/components/ProjectDialog";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { sendTextToN8N } from "@/services/n8n";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -253,7 +254,8 @@ const Index = () => {
       title: "Chat deleted",
       description: "Undo to restore",
       action: (
-        <button
+        <ToastAction
+          altText="Undo deletion"
           onClick={() => {
             clearTimeout(timeout);
             setPendingDeletion(null);
@@ -265,10 +267,9 @@ const Index = () => {
               description: "Chat has been restored",
             });
           }}
-          className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           Undo
-        </button>
+        </ToastAction>
       ),
     });
   };
@@ -378,7 +379,8 @@ const Index = () => {
       title: "Project deleted",
       description: "Undo to restore",
       action: (
-        <button
+        <ToastAction
+          altText="Undo deletion"
           onClick={() => {
             clearTimeout(timeout);
             setPendingDeletion(null);
@@ -388,10 +390,9 @@ const Index = () => {
               description: "Project has been restored",
             });
           }}
-          className="px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           Undo
-        </button>
+        </ToastAction>
       ),
     });
   };
