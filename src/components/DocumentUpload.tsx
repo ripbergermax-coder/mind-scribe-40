@@ -39,7 +39,7 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles }: DocumentUploadPr
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".txt,.json,.md"
+              accept="*"
               onChange={handleFileChange}
               className="hidden"
             />

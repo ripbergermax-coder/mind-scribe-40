@@ -133,8 +133,10 @@ serve(async (req) => {
 
       const chunksForInsert: Array<{ content: string; title: string }> = [];
 
-      // Handle JSON files
-      if (name.toLowerCase().endsWith('.json')) {
+      const ext = name.toLowerCase();
+      
+      // Handle JSON files (both standard and JSONL format)
+      if (ext.endsWith('.json') || ext.endsWith('.jsonl')) {
         try {
           let items;
           
@@ -193,10 +195,30 @@ serve(async (req) => {
           console.error(`JSON processing error for ${name}:`, e);
           throw new Error(e instanceof Error ? e.message : `Failed to process JSON file ${name}`);
         }
-      } else {
-        // Handle text files
+      } 
+      // Handle CSV files
+      else if (ext.endsWith('.csv')) {
+        const lines = content.trim().split('\n');
+        const headers = lines[0]?.split(',') || [];
+        console.log(`CSV file with ${lines.length - 1} rows`);
+
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i].split(',');
+          const rowText = headers.map((h: string, idx: number) => `${h}: ${row[idx]}`).join('; ');
+          
+          const chunks = chunkText(rowText);
+          chunks.forEach((chunk, j) => {
+            chunksForInsert.push({
+              content: chunk,
+              title: j === 0 ? `${name} - Row ${i}` : `${name} - Row ${i} (Part ${j + 1})`,
+            });
+          });
+        }
+      }
+      // Handle all other text-based files (.txt, .md, .xml, .yaml, .log, .html, .css, .js, .ts, etc.)
+      else {
         const chunks = chunkText(content);
-        console.log(`Text file split into ${chunks.length} chunks`);
+        console.log(`${name} split into ${chunks.length} chunks`);
 
         chunks.forEach((chunk) => {
           chunksForInsert.push({
