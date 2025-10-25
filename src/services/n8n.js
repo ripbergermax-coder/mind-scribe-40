@@ -1,9 +1,9 @@
 const N8N_WEBHOOK_URL = 'https://customm.app.n8n.cloud/webhook/b787719b-fce6-4896-94d7-51bb862af30f';
 
 /**
- * Sends text to N8N webhook
+ * Sends text to N8N webhook with conversation history
  */
-export async function sendTextToN8N(textPrompt, metadata = {}) {
+export async function sendTextToN8N(textPrompt, metadata = {}, conversationHistory = []) {
   try {
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
@@ -13,6 +13,7 @@ export async function sendTextToN8N(textPrompt, metadata = {}) {
       body: JSON.stringify({
         textPrompt: textPrompt || '',
         textType: 'text',
+        conversationHistory: conversationHistory, // Add full conversation history
         metadata: {
           timestamp: new Date().toISOString(),
           uploadId: `upload_${Date.now()}`,

@@ -526,13 +526,19 @@ const Index = () => {
     }
 
     try {
-      // Send to N8N and wait for RAG response
+      // Prepare conversation history for context
+      const conversationHistory = currentChat?.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })) || [];
+
+      // Send to N8N with full conversation history
       const n8nResponse = await sendTextToN8N(content, {
         messageId: userMessage.id,
         chatId: currentChatId,
         source: "chat",
         isVoiceMode,
-      });
+      }, conversationHistory);
 
       // DEBUG: Log the actual response to see what we get
       console.log("N8N Full Response:", n8nResponse);
@@ -699,12 +705,18 @@ const Index = () => {
         description: "Sending to N8N for processing",
       });
 
-      // Now send the transcribed text to N8N
+      // Prepare conversation history for context
+      const conversationHistory = currentChat?.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })) || [];
+
+      // Now send the transcribed text to N8N with conversation history
       const n8nResponse = await sendTextToN8N(text, {
         chatId: currentChatId,
         source: "voice",
         originalFormat: "audio",
-      });
+      }, conversationHistory);
 
       if (!n8nResponse.success) {
         toast({
