@@ -11,7 +11,7 @@ interface N8NWebhookResponse {
   data?: any;
 }
 
-const N8N_WEBHOOK_URL = 'https://customm.app.n8n.cloud/webhook-test/b787719b-fce6-4896-94d7-51bb862af30f';
+const N8N_WEBHOOK_URL = 'https://customm.app.n8n.cloud/webhook/b787719b-fce6-4896-94d7-51bb862af30f';
 
 /**
  * Sends data (text, audio, documents) to N8N webhook
