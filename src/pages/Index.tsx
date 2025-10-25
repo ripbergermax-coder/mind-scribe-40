@@ -240,8 +240,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-background relative overflow-hidden">
-      <StarBackground />
+    <div className="flex h-screen w-full bg-background">
       <ChatSidebar
         collapsed={sidebarCollapsed} 
         chats={chats}
@@ -254,7 +253,7 @@ const Index = () => {
         onDeleteProject={handleDeleteProject}
       />
       
-      <div className="flex-1 flex flex-col relative z-10">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
           <Button
@@ -275,8 +274,9 @@ const Index = () => {
         <DocumentUpload files={uploadedFiles} onRemoveFile={handleRemoveFile} />
 
         {/* Messages */}
-        <ScrollArea className="flex-1">
-          <div className="max-w-4xl mx-auto">
+        <ScrollArea className="flex-1 relative">
+          <StarBackground />
+          <div className="max-w-4xl mx-auto relative z-10">
             {messages.map((message) => (
               <ChatMessage
                 key={message.id}

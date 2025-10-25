@@ -78,8 +78,7 @@ const StarBackground = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
+      className="absolute inset-0 pointer-events-none"
     />
   );
 };
