@@ -22,87 +22,72 @@ function chunkText(text: string, chunkSize: number = 220, overlap: number = 40):
   return chunks;
 }
 
-// Extract text from PDF using Claude
-async function extractTextFromPDF(base64Data: string, anthropicApiKey: string): Promise<string> {
-  console.log('Extracting text from PDF using Claude...');
+// Extract text from PDF using basic text extraction
+async function extractTextFromPDF(base64Data: string): Promise<string> {
+  console.log('Extracting text from PDF...');
   
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': anthropicApiKey,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: base64Data,
-              },
-            },
-            {
-              type: 'text',
-              text: 'Extract all text from this PDF document. Return only the extracted text content, preserving the structure and formatting as much as possible.',
-            },
-          ],
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Claude API error:', errorText);
-    throw new Error(`Failed to extract text from PDF: ${errorText}`);
+  try {
+    // Decode base64
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    const text = new TextDecoder('utf-8', { fatal: false }).decode(binaryData);
+    
+    // Try to extract text between common PDF text markers
+    const textContent: string[] = [];
+    const streamRegex = /stream([\s\S]*?)endstream/g;
+    let match;
+    
+    while ((match = streamRegex.exec(text)) !== null) {
+      const streamContent = match[1];
+      // Remove binary data and extract readable text
+      const readable = streamContent.replace(/[^\x20-\x7E\n]/g, ' ').trim();
+      if (readable.length > 20) {
+        textContent.push(readable);
+      }
+    }
+    
+    if (textContent.length > 0) {
+      return textContent.join('\n\n');
+    }
+    
+    // Fallback: extract any readable text
+    const extractedText = text.replace(/[^\x20-\x7E\n]/g, ' ').trim();
+    if (extractedText.length > 100) {
+      return extractedText;
+    }
+    
+    throw new Error('Could not extract sufficient text from PDF');
+  } catch (error) {
+    console.error('PDF extraction error:', error);
+    throw new Error('Failed to extract text from PDF');
   }
-
-  const data = await response.json();
-  
-  if (!data.content || !data.content[0] || !data.content[0].text) {
-    console.error('Unexpected Claude response:', JSON.stringify(data));
-    throw new Error('Invalid response from Claude API');
-  }
-  
-  return data.content[0].text;
 }
 
-// Extract text from image using Claude vision
-async function extractTextFromImage(base64Data: string, mimeType: string, anthropicApiKey: string): Promise<string> {
-  console.log('Extracting text from image using Claude...');
+// Extract text from image using OpenAI vision
+async function extractTextFromImage(base64Data: string, mimeType: string, openaiApiKey: string): Promise<string> {
+  console.log('Extracting text from image using OpenAI vision...');
   
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': anthropicApiKey,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'gpt-4o-mini',
       max_tokens: 2048,
       messages: [
         {
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: base64Data,
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Data}`,
               },
             },
             {
               type: 'text',
-              text: 'Extract all text from this image using OCR. If there is no text, describe what you see in the image.',
+              text: 'Extract all text from this image using OCR. If there is no text, describe what you see in the image. Return only the extracted text or description.',
             },
           ],
         },
@@ -112,40 +97,42 @@ async function extractTextFromImage(base64Data: string, mimeType: string, anthro
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Claude API error:', errorText);
+    console.error('OpenAI API error:', errorText);
     throw new Error(`Failed to extract text from image: ${errorText}`);
   }
 
   const data = await response.json();
   
-  if (!data.content || !data.content[0] || !data.content[0].text) {
-    console.error('Unexpected Claude response:', JSON.stringify(data));
-    throw new Error('Invalid response from Claude API');
+  if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+    console.error('Unexpected OpenAI response:', JSON.stringify(data));
+    throw new Error('Invalid response from OpenAI API');
   }
   
-  return data.content[0].text;
+  return data.choices[0].message.content;
 }
 
 // Extract text from DOCX or other office files
-async function extractTextFromDocument(base64Data: string, fileName: string, openaiApiKey: string): Promise<string> {
+async function extractTextFromDocument(base64Data: string, fileName: string): Promise<string> {
   console.log(`Extracting text from ${fileName}...`);
   
-  // For DOCX, PPTX, XLSX, etc., we'll use a simple approach
-  // In production, consider using dedicated parsing libraries
-  
-  // Decode base64
-  const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-  const text = new TextDecoder().decode(binaryData);
-  
-  // Simple text extraction (works for some formats)
-  const extractedText = text.replace(/[^\x20-\x7E\n]/g, ' ').trim();
-  
-  if (extractedText.length > 100) {
-    return extractedText;
+  try {
+    // Decode base64
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    const text = new TextDecoder('utf-8', { fatal: false }).decode(binaryData);
+    
+    // Simple text extraction (works for some formats)
+    const extractedText = text.replace(/[^\x20-\x7E\n]/g, ' ').trim();
+    
+    if (extractedText.length > 100) {
+      return extractedText;
+    }
+    
+    // If simple extraction fails, return a placeholder
+    return `Document: ${fileName} (Basic text extraction - may not capture all content)`;
+  } catch (error) {
+    console.error('Document extraction error:', error);
+    return `Document: ${fileName} (Text extraction failed)`;
   }
-  
-  // If simple extraction fails, return a placeholder
-  return `Document: ${fileName} (Text extraction not fully supported for this format)`;
 }
 
 serve(async (req) => {
@@ -156,12 +143,11 @@ serve(async (req) => {
   try {
     const weaviateUrl = Deno.env.get('WEAVIATE_URL');
     const weaviateApiKey = Deno.env.get('WEAVIATE_API_KEY');
-    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!weaviateUrl || !weaviateApiKey || !anthropicApiKey || !openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
+    if (!weaviateUrl || !weaviateApiKey || !openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing required environment variables');
     }
 
@@ -234,16 +220,16 @@ serve(async (req) => {
 
       // Extract text based on file type
       if (fileType.includes('pdf')) {
-        extractedText = await extractTextFromPDF(base64, anthropicApiKey);
+        extractedText = await extractTextFromPDF(base64);
       } else if (fileType.includes('image')) {
-        extractedText = await extractTextFromImage(base64, fileData.file_type, anthropicApiKey);
+        extractedText = await extractTextFromImage(base64, fileData.file_type, openaiApiKey);
       } else if (
         fileType.includes('word') || 
         fileType.includes('document') || 
         fileType.includes('presentation') || 
         fileType.includes('spreadsheet')
       ) {
-        extractedText = await extractTextFromDocument(base64, fileData.file_name, anthropicApiKey);
+        extractedText = await extractTextFromDocument(base64, fileData.file_name);
       } else {
         console.warn(`Unsupported file type: ${fileData.file_type}`);
         continue;
