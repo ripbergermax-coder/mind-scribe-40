@@ -1,4 +1,4 @@
-import { MessageSquare, FolderKanban, Plus, ChevronRight } from "lucide-react";
+import { MessageSquare, FolderKanban, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +31,9 @@ interface ChatSidebarProps {
   currentChatId: string;
   onNewChat: () => void;
   onSelectChat: (chatId: string) => void;
+  onDeleteChat: (chatId: string) => void;
+  onCreateProject: () => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
 const ChatSidebar = ({ 
@@ -39,7 +42,10 @@ const ChatSidebar = ({
   projects, 
   currentChatId,
   onNewChat,
-  onSelectChat 
+  onSelectChat,
+  onDeleteChat,
+  onCreateProject,
+  onDeleteProject
 }: ChatSidebarProps) => {
   const recentChats = chats.slice(0, 10);
 
@@ -77,26 +83,40 @@ const ChatSidebar = ({
             </div>
             <div className="space-y-1">
               {recentChats.map((chat) => (
-                <Button
-                  key={chat.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start hover:bg-sidebar-accent group",
-                    collapsed && "px-2",
-                    currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
-                  )}
-                  onClick={() => onSelectChat(chat.id)}
-                >
-                  <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div key={chat.id} className="relative group/item">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start hover:bg-sidebar-accent group",
+                      collapsed && "px-2",
+                      currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
+                    )}
+                    onClick={() => onSelectChat(chat.id)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    {!collapsed && (
+                      <div className="flex-1 text-left overflow-hidden">
+                        <p className="text-sm truncate">{chat.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {chat.messages.length} messages
+                        </p>
+                      </div>
+                    )}
+                  </Button>
                   {!collapsed && (
-                    <div className="flex-1 text-left overflow-hidden">
-                      <p className="text-sm truncate">{chat.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {chat.messages.length} messages
-                      </p>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/item:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteChat(chat.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   )}
-                </Button>
+                </div>
               ))}
             </div>
           </div>
@@ -110,25 +130,48 @@ const ChatSidebar = ({
               {!collapsed && (
                 <span className="text-sm font-medium text-muted-foreground">Projects</span>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto h-5 w-5 hover:bg-sidebar-accent"
+                onClick={onCreateProject}
+                title="New Project"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
             </div>
             <div className="space-y-1">
               {projects.map((project) => (
-                <Button
-                  key={project.id}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start hover:bg-sidebar-accent group",
-                    collapsed && "px-2"
-                  )}
-                >
-                  <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                <div key={project.id} className="relative group/item">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start hover:bg-sidebar-accent group",
+                      collapsed && "px-2"
+                    )}
+                  >
+                    <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                    {!collapsed && (
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-sm">{project.name}</span>
+                        <span className="text-xs text-muted-foreground">{project.chats.length}</span>
+                      </div>
+                    )}
+                  </Button>
                   {!collapsed && (
-                    <div className="flex-1 flex items-center justify-between">
-                      <span className="text-sm">{project.name}</span>
-                      <span className="text-xs text-muted-foreground">{project.chats.length}</span>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover/item:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteProject(project.id);
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   )}
-                </Button>
+                </div>
               ))}
             </div>
           </div>

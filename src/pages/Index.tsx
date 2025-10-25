@@ -95,6 +95,43 @@ const Index = () => {
     setUploadedFiles([]);
   };
 
+  const handleDeleteChat = (chatId: string) => {
+    setChats(prev => prev.filter(c => c.id !== chatId));
+    if (currentChatId === chatId) {
+      const remainingChats = chats.filter(c => c.id !== chatId);
+      if (remainingChats.length > 0) {
+        setCurrentChatId(remainingChats[0].id);
+      } else {
+        handleCreateNewChat();
+      }
+    }
+    toast({
+      title: "Chat deleted",
+      description: "Conversation removed"
+    });
+  };
+
+  const handleCreateProject = () => {
+    const newProject: Project = {
+      id: Date.now().toString(),
+      name: "New Project",
+      chats: []
+    };
+    setProjects(prev => [...prev, newProject]);
+    toast({
+      title: "Project created",
+      description: "New project added"
+    });
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    toast({
+      title: "Project deleted",
+      description: "Project removed"
+    });
+  };
+
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -210,6 +247,9 @@ const Index = () => {
         currentChatId={currentChatId}
         onNewChat={handleCreateNewChat}
         onSelectChat={handleSelectChat}
+        onDeleteChat={handleDeleteChat}
+        onCreateProject={handleCreateProject}
+        onDeleteProject={handleDeleteProject}
       />
       
       <div className="flex-1 flex flex-col">
