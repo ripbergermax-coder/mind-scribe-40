@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Bot, User } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Bot, User, Loader2 } from "lucide-react";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -44,10 +43,9 @@ const ChatMessage = ({ role, content, timestamp, isLoading = false }: ChatMessag
         </div>
         <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
           {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-4/6" />
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-muted-foreground">Thinking...</span>
             </div>
           ) : (
             content
