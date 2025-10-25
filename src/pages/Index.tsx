@@ -56,7 +56,7 @@ const Index = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [renamingItem, setRenamingItem] = useState<{ type: 'chat' | 'project', id: string, name: string } | null>(null);
+  const [renamingItem, setRenamingItem] = useState<{ type: "chat" | "project"; id: string; name: string } | null>(null);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [movingChat, setMovingChat] = useState<Chat | null>(null);
   const navigate = useNavigate();
@@ -72,12 +72,14 @@ const Index = () => {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (!session) {
         navigate("/auth");
-      } else if (event === 'SIGNED_IN') {
+      } else if (event === "SIGNED_IN") {
         setTimeout(() => {
           loadChatsAndProjects();
         }, 0);
@@ -100,18 +102,18 @@ const Index = () => {
     try {
       // Load projects
       const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (projectsError) throw projectsError;
       setProjects(projectsData || []);
 
       // Load chats
       const { data: chatsData, error: chatsError } = await supabase
-        .from('chats')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from("chats")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (chatsError) throw chatsError;
 
@@ -119,22 +121,22 @@ const Index = () => {
       const chatsWithMessages = await Promise.all(
         (chatsData || []).map(async (chat) => {
           const { data: messagesData } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('chat_id', chat.id)
-            .order('created_at', { ascending: true });
+            .from("messages")
+            .select("*")
+            .eq("chat_id", chat.id)
+            .order("created_at", { ascending: true });
 
           return {
             ...chat,
-            messages: (messagesData || []).map(msg => ({
+            messages: (messagesData || []).map((msg) => ({
               id: msg.id,
-              role: msg.role as 'user' | 'assistant',
+              role: msg.role as "user" | "assistant",
               content: msg.content,
               timestamp: new Date(msg.created_at).toLocaleTimeString(),
             })),
             timestamp: chat.created_at,
           };
-        })
+        }),
       );
 
       setChats(chatsWithMessages);
@@ -144,7 +146,7 @@ const Index = () => {
         setCurrentChatId(chatsWithMessages[0].id);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
       toast({
         title: "Error",
         description: "Failed to load your data",
@@ -161,10 +163,10 @@ const Index = () => {
 
     try {
       const { data: newChat, error } = await supabase
-        .from('chats')
+        .from("chats")
         .insert({
           user_id: user.id,
-          title: 'New Conversation',
+          title: "New Conversation",
         })
         .select()
         .single();
@@ -180,13 +182,13 @@ const Index = () => {
       setChats((prev) => [chatWithMessages, ...prev]);
       setCurrentChatId(newChat.id);
       setUploadedFiles([]);
-      
+
       toast({
         title: "New chat created",
         description: "Started a fresh conversation",
       });
     } catch (error) {
-      console.error('Error creating chat:', error);
+      console.error("Error creating chat:", error);
       toast({
         title: "Error",
         description: "Failed to create chat",
@@ -202,15 +204,12 @@ const Index = () => {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      const { error } = await supabase
-        .from('chats')
-        .delete()
-        .eq('id', chatId);
+      const { error } = await supabase.from("chats").delete().eq("id", chatId);
 
       if (error) throw error;
 
       setChats((prev) => prev.filter((c) => c.id !== chatId));
-      
+
       if (currentChatId === chatId) {
         const remainingChats = chats.filter((c) => c.id !== chatId);
         if (remainingChats.length > 0) {
@@ -219,13 +218,13 @@ const Index = () => {
           handleCreateNewChat();
         }
       }
-      
+
       toast({
         title: "Chat deleted",
         description: "Conversation removed",
       });
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      console.error("Error deleting chat:", error);
       toast({
         title: "Error",
         description: "Failed to delete chat",
@@ -235,15 +234,15 @@ const Index = () => {
   };
 
   const handleRenameChat = (chatId: string) => {
-    const chat = chats.find(c => c.id === chatId);
+    const chat = chats.find((c) => c.id === chatId);
     if (chat) {
-      setRenamingItem({ type: 'chat', id: chatId, name: chat.title });
+      setRenamingItem({ type: "chat", id: chatId, name: chat.title });
       setRenameDialogOpen(true);
     }
   };
 
   const handleMoveToProject = (chatId: string) => {
-    const chat = chats.find(c => c.id === chatId);
+    const chat = chats.find((c) => c.id === chatId);
     if (chat) {
       setMovingChat(chat);
       setProjectDialogOpen(true);
@@ -252,23 +251,18 @@ const Index = () => {
 
   const handleAssignToProject = async (chatId: string, projectId: string | null) => {
     try {
-      const { error } = await supabase
-        .from('chats')
-        .update({ project_id: projectId })
-        .eq('id', chatId);
+      const { error } = await supabase.from("chats").update({ project_id: projectId }).eq("id", chatId);
 
       if (error) throw error;
 
-      setChats(prev => prev.map(chat =>
-        chat.id === chatId ? { ...chat, project_id: projectId } : chat
-      ));
+      setChats((prev) => prev.map((chat) => (chat.id === chatId ? { ...chat, project_id: projectId } : chat)));
 
       toast({
         title: "Chat moved",
         description: projectId ? "Chat assigned to project" : "Chat removed from project",
       });
     } catch (error) {
-      console.error('Error moving chat:', error);
+      console.error("Error moving chat:", error);
       toast({
         title: "Error",
         description: "Failed to move chat",
@@ -282,10 +276,10 @@ const Index = () => {
 
     try {
       const { data: newProject, error } = await supabase
-        .from('projects')
+        .from("projects")
         .insert({
           user_id: user.id,
-          name: 'New Project',
+          name: "New Project",
         })
         .select()
         .single();
@@ -298,7 +292,7 @@ const Index = () => {
         description: "New project added",
       });
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error("Error creating project:", error);
       toast({
         title: "Error",
         description: "Failed to create project",
@@ -309,10 +303,7 @@ const Index = () => {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', projectId);
+      const { error } = await supabase.from("projects").delete().eq("id", projectId);
 
       if (error) throw error;
 
@@ -322,7 +313,7 @@ const Index = () => {
         description: "Project removed",
       });
     } catch (error) {
-      console.error('Error deleting project:', error);
+      console.error("Error deleting project:", error);
       toast({
         title: "Error",
         description: "Failed to delete project",
@@ -332,9 +323,9 @@ const Index = () => {
   };
 
   const handleRenameProject = (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
+    const project = projects.find((p) => p.id === projectId);
     if (project) {
-      setRenamingItem({ type: 'project', id: projectId, name: project.name });
+      setRenamingItem({ type: "project", id: projectId, name: project.name });
       setRenameDialogOpen(true);
     }
   };
@@ -343,36 +334,28 @@ const Index = () => {
     if (!renamingItem) return;
 
     try {
-      if (renamingItem.type === 'chat') {
-        const { error } = await supabase
-          .from('chats')
-          .update({ title: newName })
-          .eq('id', renamingItem.id);
+      if (renamingItem.type === "chat") {
+        const { error } = await supabase.from("chats").update({ title: newName }).eq("id", renamingItem.id);
 
         if (error) throw error;
 
-        setChats(prev => prev.map(chat =>
-          chat.id === renamingItem.id ? { ...chat, title: newName } : chat
-        ));
+        setChats((prev) => prev.map((chat) => (chat.id === renamingItem.id ? { ...chat, title: newName } : chat)));
       } else {
-        const { error } = await supabase
-          .from('projects')
-          .update({ name: newName })
-          .eq('id', renamingItem.id);
+        const { error } = await supabase.from("projects").update({ name: newName }).eq("id", renamingItem.id);
 
         if (error) throw error;
 
-        setProjects(prev => prev.map(project =>
-          project.id === renamingItem.id ? { ...project, name: newName } : project
-        ));
+        setProjects((prev) =>
+          prev.map((project) => (project.id === renamingItem.id ? { ...project, name: newName } : project)),
+        );
       }
 
       toast({
         title: "Renamed",
-        description: `${renamingItem.type === 'chat' ? 'Chat' : 'Project'} renamed successfully`,
+        description: `${renamingItem.type === "chat" ? "Chat" : "Project"} renamed successfully`,
       });
     } catch (error) {
-      console.error('Error renaming:', error);
+      console.error("Error renaming:", error);
       toast({
         title: "Error",
         description: "Failed to rename",
@@ -404,31 +387,26 @@ const Index = () => {
 
     // Save to database
     try {
-      const { error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          chat_id: currentChatId,
-          role: 'user',
-          content,
-        });
+      const { error: msgError } = await supabase.from("messages").insert({
+        chat_id: currentChatId,
+        role: "user",
+        content,
+      });
 
       if (msgError) throw msgError;
 
       // Update chat title if it's the first user message
       if (currentChat && currentChat.messages.length === 0) {
         const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
-        
-        const { error: chatError } = await supabase
-          .from('chats')
-          .update({ title })
-          .eq('id', currentChatId);
+
+        const { error: chatError } = await supabase.from("chats").update({ title }).eq("id", currentChatId);
 
         if (!chatError) {
           setChats((prev) => prev.map((chat) => (chat.id === currentChatId ? { ...chat, title } : chat)));
         }
       }
     } catch (error) {
-      console.error('Error saving message:', error);
+      console.error("Error saving message:", error);
     }
 
     try {
@@ -469,9 +447,9 @@ const Index = () => {
       // Extract the AI response from N8N webhook response
       let aiResponseContent = "I received your message but couldn't generate a response.";
 
-      // N8N webhook returns: { success: true, message: "AI response text" }
-      if (n8nResponse.data?.message && typeof n8nResponse.data.message === "string") {
-        aiResponseContent = n8nResponse.data.message;
+      // N8N webhook returns: { message {content: "AI Reponse"} }
+      if (n8nResponse.data?.message.content) {
+        aiResponseContent = n8nResponse.data.message.content;
       } else if (typeof n8nResponse.data === "string") {
         aiResponseContent = n8nResponse.data;
       }
@@ -488,15 +466,13 @@ const Index = () => {
 
       // Save AI response to database
       try {
-        await supabase
-          .from('messages')
-          .insert({
-            chat_id: currentChatId,
-            role: 'assistant',
-            content: aiResponseContent,
-          });
+        await supabase.from("messages").insert({
+          chat_id: currentChatId,
+          role: "assistant",
+          content: aiResponseContent,
+        });
       } catch (error) {
-        console.error('Error saving AI message:', error);
+        console.error("Error saving AI message:", error);
       }
 
       setChats((prev) =>
@@ -538,7 +514,7 @@ const Index = () => {
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve, reject) => {
         reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
+          const base64 = (reader.result as string).split(",")[1];
           resolve(base64);
         };
         reader.onerror = reject;
@@ -547,15 +523,15 @@ const Index = () => {
 
       // Send to OpenAI STT via edge function
       const sttResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ audio: base64Audio }),
       });
 
       if (!sttResponse.ok) {
-        throw new Error('Failed to transcribe audio');
+        throw new Error("Failed to transcribe audio");
       }
 
       const { text } = await sttResponse.json();
@@ -625,14 +601,12 @@ const Index = () => {
       // Save both messages to database
       if (currentChatId && user) {
         try {
-          await supabase
-            .from('messages')
-            .insert([
-              { chat_id: currentChatId, role: 'user', content: text },
-              { chat_id: currentChatId, role: 'assistant', content: aiResponseContent }
-            ]);
+          await supabase.from("messages").insert([
+            { chat_id: currentChatId, role: "user", content: text },
+            { chat_id: currentChatId, role: "assistant", content: aiResponseContent },
+          ]);
         } catch (error) {
-          console.error('Error saving voice messages:', error);
+          console.error("Error saving voice messages:", error);
         }
       }
 
@@ -654,12 +628,27 @@ const Index = () => {
   };
 
   const handleUploadFiles = async (files: File[]) => {
-    const TEXT_EXTENSIONS = ['.txt', '.md', '.json', '.jsonl', '.csv', '.xml', '.yaml', '.yml', '.log', '.js', '.ts', '.tsx', '.html', '.css'];
-    
+    const TEXT_EXTENSIONS = [
+      ".txt",
+      ".md",
+      ".json",
+      ".jsonl",
+      ".csv",
+      ".xml",
+      ".yaml",
+      ".yml",
+      ".log",
+      ".js",
+      ".ts",
+      ".tsx",
+      ".html",
+      ".css",
+    ];
+
     const fileDataPromises = files.map(async (file) => {
-      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const extension = "." + file.name.split(".").pop()?.toLowerCase();
       const isTextFile = TEXT_EXTENSIONS.includes(extension);
-      
+
       if (isTextFile) {
         // For text files, read as text
         const content = await file.text();
@@ -675,12 +664,12 @@ const Index = () => {
         return new Promise<any>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => {
-            const base64 = (reader.result as string).split(',')[1];
+            const base64 = (reader.result as string).split(",")[1];
             resolve({
               name: file.name,
               content: base64,
               isTextFile: false,
-              fileType: file.type || 'application/octet-stream',
+              fileType: file.type || "application/octet-stream",
               fileSize: file.size,
             });
           };
@@ -692,7 +681,7 @@ const Index = () => {
     const fileData = await Promise.all(fileDataPromises);
 
     try {
-      const response = await supabase.functions.invoke('upload-to-rag', {
+      const response = await supabase.functions.invoke("upload-to-rag", {
         body: { files: fileData },
       });
 
@@ -702,13 +691,13 @@ const Index = () => {
 
       const result = response.data;
       const fileDataResolved = await Promise.all(fileDataPromises);
-      const textFilesCount = fileDataResolved.filter(f => f.isTextFile).length;
-      const binaryFilesCount = fileDataResolved.filter(f => !f.isTextFile).length;
-      
+      const textFilesCount = fileDataResolved.filter((f) => f.isTextFile).length;
+      const binaryFilesCount = fileDataResolved.filter((f) => !f.isTextFile).length;
+
       // Store binary file IDs for later processing
       const binaryFileIds = result.binaryFiles?.map((f: any) => f.id) || [];
-      
-      let message = '';
+
+      let message = "";
       if (textFilesCount > 0 && binaryFilesCount > 0) {
         message = `${textFilesCount} text file(s) uploaded to RAG, ${binaryFilesCount} binary file(s) stored`;
       } else if (textFilesCount > 0) {
@@ -723,23 +712,25 @@ const Index = () => {
       });
 
       // Add to UI state
-      const newFiles = await Promise.all(files.map(async (file, idx) => {
-        const resolvedFileData = fileDataResolved[idx];
-        const binaryFile = result.binaryFiles?.find((f: any) => f.name === file.name);
-        
-        return {
-          id: Date.now().toString() + Math.random(),
-          name: file.name,
-          size: `${(file.size / 1024).toFixed(1)} KB`,
-          isProcessed: resolvedFileData.isTextFile,
-          isBinary: !resolvedFileData.isTextFile,
-          fileId: binaryFile?.id,
-        };
-      }));
+      const newFiles = await Promise.all(
+        files.map(async (file, idx) => {
+          const resolvedFileData = fileDataResolved[idx];
+          const binaryFile = result.binaryFiles?.find((f: any) => f.name === file.name);
+
+          return {
+            id: Date.now().toString() + Math.random(),
+            name: file.name,
+            size: `${(file.size / 1024).toFixed(1)} KB`,
+            isProcessed: resolvedFileData.isTextFile,
+            isBinary: !resolvedFileData.isTextFile,
+            fileId: binaryFile?.id,
+          };
+        }),
+      );
 
       setUploadedFiles((prev) => [...prev, ...newFiles]);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       toast({
         title: "Error",
         description: "Failed to upload files",
@@ -749,8 +740,8 @@ const Index = () => {
   };
 
   const handleProcessBinaryFiles = async () => {
-    const binaryFiles = uploadedFiles.filter(f => f.isBinary && !f.isProcessed && f.fileId);
-    
+    const binaryFiles = uploadedFiles.filter((f) => f.isBinary && !f.isProcessed && f.fileId);
+
     if (binaryFiles.length === 0) {
       toast({
         title: "No files to process",
@@ -760,9 +751,9 @@ const Index = () => {
     }
 
     try {
-      const fileIds = binaryFiles.map(f => f.fileId);
-      
-      const response = await supabase.functions.invoke('process-binary-files', {
+      const fileIds = binaryFiles.map((f) => f.fileId);
+
+      const response = await supabase.functions.invoke("process-binary-files", {
         body: { fileIds },
       });
 
@@ -771,23 +762,23 @@ const Index = () => {
       }
 
       const result = response.data;
-      
+
       toast({
         title: "Success",
         description: `Processed ${result.files.length} binary file(s) for RAG`,
       });
 
       // Update UI state
-      setUploadedFiles(prev => 
-        prev.map(file => {
-          if (binaryFiles.find(bf => bf.id === file.id)) {
+      setUploadedFiles((prev) =>
+        prev.map((file) => {
+          if (binaryFiles.find((bf) => bf.id === file.id)) {
             return { ...file, isProcessed: true };
           }
           return file;
-        })
+        }),
       );
     } catch (error) {
-      console.error('Processing error:', error);
+      console.error("Processing error:", error);
       toast({
         title: "Error",
         description: "Failed to process binary files",
@@ -831,7 +822,7 @@ const Index = () => {
         onOpenChange={setRenameDialogOpen}
         currentName={renamingItem?.name || ""}
         onRename={handleRename}
-        title={`Rename ${renamingItem?.type === 'chat' ? 'Chat' : 'Project'}`}
+        title={`Rename ${renamingItem?.type === "chat" ? "Chat" : "Project"}`}
         description={`Enter a new name for this ${renamingItem?.type}`}
       />
 
@@ -863,12 +854,12 @@ const Index = () => {
         </div>
 
         {/* Document Upload Area */}
-          <DocumentUpload 
-            files={uploadedFiles} 
-            onRemoveFile={handleRemoveFile} 
-            onUploadFiles={handleUploadFiles}
-            onProcessBinaryFiles={handleProcessBinaryFiles}
-          />
+        <DocumentUpload
+          files={uploadedFiles}
+          onRemoveFile={handleRemoveFile}
+          onUploadFiles={handleUploadFiles}
+          onProcessBinaryFiles={handleProcessBinaryFiles}
+        />
 
         {/* Messages */}
         <ScrollArea className="flex-1 relative">
