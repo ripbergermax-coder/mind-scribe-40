@@ -104,8 +104,8 @@ const ChatSidebar = ({
                     <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
                     {!collapsed && (
                       <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-sm truncate">{chat.title}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm truncate group-hover:text-primary transition-colors">{chat.title}</p>
+                        <p className="text-xs text-muted-foreground group-hover:text-primary/70 transition-colors">
                           {chat.messages.length} messages
                         </p>
                       </div>
@@ -188,11 +188,11 @@ const ChatSidebar = ({
                           collapsed ? "px-2" : "pr-2"
                         )}
                       >
-                        <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-accent transition-colors" />
+                        <FolderKanban className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
                         {!collapsed && (
                           <div className="flex-1 flex items-center justify-between">
-                            <span className="text-sm truncate">{project.name}</span>
-                            <span className="text-xs text-muted-foreground">{projectChats.length}</span>
+                            <span className="text-sm truncate group-hover:text-primary transition-colors">{project.name}</span>
+                            <span className="text-xs text-muted-foreground group-hover:text-primary/70 transition-colors">{projectChats.length}</span>
                           </div>
                         )}
                       </Button>
@@ -237,8 +237,8 @@ const ChatSidebar = ({
                         >
                           <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
                           <div className="flex-1 text-left overflow-hidden">
-                            <p className="text-sm truncate">{chat.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm truncate group-hover:text-primary transition-colors">{chat.title}</p>
+                            <p className="text-xs text-muted-foreground group-hover:text-primary/70 transition-colors">
                               {chat.messages.length} messages
                             </p>
                           </div>
