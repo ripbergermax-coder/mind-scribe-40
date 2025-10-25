@@ -161,12 +161,12 @@ serve(async (req) => {
         // Create user-specific path
         const storagePath = userId ? `${userId}/${name}` : `anonymous/${Date.now()}_${name}`;
         
-        // Upload to storage
+        // Upload to storage (upsert allows overwriting existing files)
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('uploaded-files')
           .upload(storagePath, binaryData, {
             contentType: fileType,
-            upsert: false,
+            upsert: true,
           });
         
         if (uploadError) {
