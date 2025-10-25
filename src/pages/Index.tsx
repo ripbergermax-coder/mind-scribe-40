@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import ChatSidebar from "@/components/ChatSidebar";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -800,23 +801,7 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background">
-      <ChatSidebar
-        collapsed={sidebarCollapsed}
-        chats={chats}
-        projects={projects}
-        currentChatId={currentChatId || ""}
-        onNewChat={handleCreateNewChat}
-        onSelectChat={handleSelectChat}
-        onDeleteChat={handleDeleteChat}
-        onRenameChat={handleRenameChat}
-        onMoveToProject={handleMoveToProject}
-        onCreateProject={handleCreateProject}
-        onDeleteProject={handleDeleteProject}
-        onRenameProject={handleRenameProject}
-        onLogout={handleLogout}
-      />
-
+    <div className="h-screen w-full bg-background">
       <RenameDialog
         open={renameDialogOpen}
         onOpenChange={setRenameDialogOpen}
@@ -836,55 +821,85 @@ const Index = () => {
         />
       )}
 
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hover:bg-secondary"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">{currentChat?.title || "New Conversation"}</h1>
-            <p className="text-sm text-muted-foreground">Ask questions, upload docs, or use voice</p>
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel 
+          defaultSize={20} 
+          minSize={15} 
+          maxSize={40}
+          collapsible
+          collapsedSize={0}
+        >
+          <ChatSidebar
+            collapsed={sidebarCollapsed}
+            chats={chats}
+            projects={projects}
+            currentChatId={currentChatId || ""}
+            onNewChat={handleCreateNewChat}
+            onSelectChat={handleSelectChat}
+            onDeleteChat={handleDeleteChat}
+            onRenameChat={handleRenameChat}
+            onMoveToProject={handleMoveToProject}
+            onCreateProject={handleCreateProject}
+            onDeleteProject={handleDeleteProject}
+            onRenameProject={handleRenameProject}
+            onLogout={handleLogout}
+          />
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        <ResizablePanel defaultSize={80} minSize={30}>
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hover:bg-secondary"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-lg font-semibold">{currentChat?.title || "New Conversation"}</h1>
+                <p className="text-sm text-muted-foreground">Ask questions, upload docs, or use voice</p>
+              </div>
+            </div>
+
+            {/* Document Upload Area */}
+            <DocumentUpload
+              files={uploadedFiles}
+              onRemoveFile={handleRemoveFile}
+              onUploadFiles={handleUploadFiles}
+              onProcessBinaryFiles={handleProcessBinaryFiles}
+            />
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 relative">
+              <StarBackground />
+              <div className="max-w-4xl mx-auto relative z-10">
+                {messages.map((message) => (
+                  <ChatMessage
+                    key={message.id}
+                    role={message.role}
+                    content={message.content}
+                    timestamp={message.timestamp}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+
+            {/* Input */}
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              onFileUpload={handleFileUpload}
+              onAudioUpload={handleAudioUpload}
+              isVoiceMode={isVoiceMode}
+              onToggleVoice={handleToggleVoice}
+            />
           </div>
-        </div>
-
-        {/* Document Upload Area */}
-        <DocumentUpload
-          files={uploadedFiles}
-          onRemoveFile={handleRemoveFile}
-          onUploadFiles={handleUploadFiles}
-          onProcessBinaryFiles={handleProcessBinaryFiles}
-        />
-
-        {/* Messages */}
-        <ScrollArea className="flex-1 relative">
-          <StarBackground />
-          <div className="max-w-4xl mx-auto relative z-10">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                timestamp={message.timestamp}
-              />
-            ))}
-          </div>
-        </ScrollArea>
-
-        {/* Input */}
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
-          onAudioUpload={handleAudioUpload}
-          isVoiceMode={isVoiceMode}
-          onToggleVoice={handleToggleVoice}
-        />
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };
