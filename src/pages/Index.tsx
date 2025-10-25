@@ -6,6 +6,7 @@ import ChatSidebar from "@/components/ChatSidebar";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import DocumentUpload from "@/components/DocumentUpload";
+import StarBackground from "@/components/StarBackground";
 import { useToast } from "@/components/ui/use-toast";
 import { sendToN8N, sendTextToN8N } from "@/services/n8n";
 
@@ -239,8 +240,9 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-background">
-      <ChatSidebar 
+    <div className="flex h-screen w-full bg-background relative overflow-hidden">
+      <StarBackground />
+      <ChatSidebar
         collapsed={sidebarCollapsed} 
         chats={chats}
         projects={projects}
@@ -252,7 +254,7 @@ const Index = () => {
         onDeleteProject={handleDeleteProject}
       />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         {/* Header */}
         <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
           <Button
