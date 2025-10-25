@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import AudioBubbles from "./AudioBubbles";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
@@ -126,7 +127,8 @@ const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, on
           </div>
 
           <div className="flex gap-2">
-            <div className="relative">
+            <div className="relative w-12 h-12">
+              <AudioBubbles isActive={isRecording} />
               {isRecording && (
                 <>
                   <div className="absolute inset-0 rounded-md bg-destructive/20 animate-ping" />
