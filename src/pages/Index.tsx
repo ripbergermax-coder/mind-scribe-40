@@ -26,6 +26,9 @@ interface UploadedFile {
   id: string;
   name: string;
   size: string;
+  isProcessed?: boolean;
+  isBinary?: boolean;
+  fileId?: string;
 }
 
 interface Chat {
@@ -709,8 +712,12 @@ const Index = () => {
       }
 
       const result = response.data;
-      const textFilesCount = fileData.filter(f => f.isTextFile).length;
-      const binaryFilesCount = fileData.filter(f => !f.isTextFile).length;
+      const fileDataResolved = await Promise.all(fileDataPromises);
+      const textFilesCount = fileDataResolved.filter(f => f.isTextFile).length;
+      const binaryFilesCount = fileDataResolved.filter(f => !f.isTextFile).length;
+      
+      // Store binary file IDs for later processing
+      const binaryFileIds = result.binaryFiles?.map((f: any) => f.id) || [];
       
       let message = '';
       if (textFilesCount > 0 && binaryFilesCount > 0) {
@@ -727,10 +734,18 @@ const Index = () => {
       });
 
       // Add to UI state
-      const newFiles = files.map((file) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: `${(file.size / 1024).toFixed(1)} KB`,
+      const newFiles = await Promise.all(files.map(async (file, idx) => {
+        const resolvedFileData = fileDataResolved[idx];
+        const binaryFile = result.binaryFiles?.find((f: any) => f.name === file.name);
+        
+        return {
+          id: Date.now().toString() + Math.random(),
+          name: file.name,
+          size: `${(file.size / 1024).toFixed(1)} KB`,
+          isProcessed: resolvedFileData.isTextFile,
+          isBinary: !resolvedFileData.isTextFile,
+          fileId: binaryFile?.id,
+        };
       }));
 
       setUploadedFiles((prev) => [...prev, ...newFiles]);
@@ -738,7 +753,55 @@ const Index = () => {
       console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: "Failed to upload files to RAG storage",
+        description: "Failed to upload files",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProcessBinaryFiles = async () => {
+    const binaryFiles = uploadedFiles.filter(f => f.isBinary && !f.isProcessed && f.fileId);
+    
+    if (binaryFiles.length === 0) {
+      toast({
+        title: "No files to process",
+        description: "All binary files have already been processed",
+      });
+      return;
+    }
+
+    try {
+      const fileIds = binaryFiles.map(f => f.fileId);
+      
+      const response = await supabase.functions.invoke('process-binary-files', {
+        body: { fileIds },
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      const result = response.data;
+      
+      toast({
+        title: "Success",
+        description: `Processed ${result.files.length} binary file(s) for RAG`,
+      });
+
+      // Update UI state
+      setUploadedFiles(prev => 
+        prev.map(file => {
+          if (binaryFiles.find(bf => bf.id === file.id)) {
+            return { ...file, isProcessed: true };
+          }
+          return file;
+        })
+      );
+    } catch (error) {
+      console.error('Processing error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process binary files",
         variant: "destructive",
       });
     }
@@ -811,7 +874,12 @@ const Index = () => {
         </div>
 
         {/* Document Upload Area */}
-        <DocumentUpload files={uploadedFiles} onRemoveFile={handleRemoveFile} onUploadFiles={handleUploadFiles} />
+          <DocumentUpload 
+            files={uploadedFiles} 
+            onRemoveFile={handleRemoveFile} 
+            onUploadFiles={handleUploadFiles}
+            onProcessBinaryFiles={handleProcessBinaryFiles}
+          />
 
         {/* Messages */}
         <ScrollArea className="flex-1 relative">

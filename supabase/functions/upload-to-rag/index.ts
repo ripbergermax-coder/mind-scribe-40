@@ -178,7 +178,7 @@ serve(async (req) => {
         
         // Store metadata in database
         if (userId) {
-          const { error: dbError } = await supabase
+          const { data: insertedFile, error: dbError } = await supabase
             .from('uploaded_files')
             .insert({
               user_id: userId,
@@ -188,17 +188,25 @@ serve(async (req) => {
               storage_path: storagePath,
               is_text_file: false,
               rag_processed: false,
-            });
+            })
+            .select()
+            .single();
           
           if (dbError) {
             console.error(`Failed to store file metadata:`, dbError);
+          } else {
+            binaryFiles.push({
+              id: insertedFile.id,
+              name,
+              storagePath,
+            });
           }
+        } else {
+          binaryFiles.push({
+            name,
+            storagePath,
+          });
         }
-        
-        binaryFiles.push({
-          name,
-          storagePath,
-        });
         
         continue;
       }
