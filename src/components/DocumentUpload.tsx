@@ -34,8 +34,8 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
   };
 
   return (
-    <div className="border-b border-border bg-card/30 backdrop-blur-sm">
-      <div className="max-w-4xl mx-auto p-4">
+    <div className="bg-transparent">
+      <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {files.length > 0 && <h3 className="text-sm font-medium">Documents for RAG</h3>}
           <div className={cn(files.length === 0 && "ml-auto")}>
@@ -51,6 +51,7 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
+              className="shadow-sm hover:shadow-md transition-shadow"
             >
               <Upload className="h-4 w-4 mr-2" />
               Upload Files
@@ -68,14 +69,14 @@ const DocumentUpload = ({ files, onRemoveFile, onUploadFiles, onProcessBinaryFil
           </div>
         </div>
         {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-3 p-3 rounded-lg bg-secondary/30 backdrop-blur-sm border border-border/50 shadow-sm">
           {files.map((file) => (
-          <div
-            key={file.id}
-            className={cn(
-              "flex items-center gap-2 px-3 py-2 rounded-lg",
-              "bg-secondary border border-border",
-              "hover:border-primary transition-colors group",
+            <div
+              key={file.id}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg",
+                "bg-background/80 border border-border/50",
+                "hover:border-primary transition-all hover:shadow-md group",
               file.isBinary && !file.isProcessed && "border-yellow-500"
             )}
           >
