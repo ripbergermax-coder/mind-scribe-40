@@ -1,47 +1,47 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const CLASS_NAME = "SeymenTest";
+const CLASS_NAME = "Text";
 
 // Chunk text into smaller pieces with overlap
 function chunkText(text: string, chunkSize: number = 220, overlap: number = 40): string[] {
   const chunks: string[] = [];
   const words = text.split(/\s+/);
-  
+
   for (let i = 0; i < words.length; i += chunkSize - overlap) {
-    const chunk = words.slice(i, i + chunkSize).join(' ');
+    const chunk = words.slice(i, i + chunkSize).join(" ");
     chunks.push(chunk);
   }
-  
+
   return chunks;
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const weaviateUrl = Deno.env.get('WEAVIATE_URL');
-    const weaviateApiKey = Deno.env.get('WEAVIATE_API_KEY');
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const weaviateUrl = Deno.env.get("WEAVIATE_URL");
+    const weaviateApiKey = Deno.env.get("WEAVIATE_API_KEY");
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!weaviateUrl || !weaviateApiKey || !openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing required environment variables');
+      throw new Error("Missing required environment variables");
     }
 
     // Get user ID from auth header
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     let userId = null;
-    
+
     if (authHeader) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
         auth: {
@@ -49,88 +49,90 @@ serve(async (req) => {
           persistSession: false,
         },
       });
-      
-      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
       userId = user?.id;
     }
 
-    console.log('Connecting to Weaviate...');
+    console.log("Connecting to Weaviate...");
 
     // Prepare Weaviate URL
     let formattedUrl = weaviateUrl;
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    console.log('Formatted Weaviate URL:', formattedUrl);
+    console.log("Formatted Weaviate URL:", formattedUrl);
 
     // Check if schema exists
     const schemaCheckResponse = await fetch(`${formattedUrl}/v1/schema/${CLASS_NAME}`, {
       headers: {
-        'Authorization': `Bearer ${weaviateApiKey}`,
+        Authorization: `Bearer ${weaviateApiKey}`,
       },
     });
 
     if (schemaCheckResponse.status === 404) {
       console.log(`Creating class: ${CLASS_NAME}`);
-      
+
       const createSchemaResponse = await fetch(`${formattedUrl}/v1/schema`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${weaviateApiKey}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${weaviateApiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           class: CLASS_NAME,
-          description: 'Chunks of documents for RAG',
-          vectorizer: 'text2vec-openai',
+          description: "Chunks of documents for RAG",
+          vectorizer: "text2vec-openai",
           moduleConfig: {
-            'text2vec-openai': {
-              model: 'text-embedding-3-large',
-              modelVersion: 'ada-003',
-              type: 'text',
+            "text2vec-openai": {
+              model: "text-embedding-3-large",
+              modelVersion: "ada-003",
+              type: "text",
             },
           },
           properties: [
             {
-              name: 'text',
-              dataType: ['text'],
-              description: 'Chunk text content',
+              name: "text",
+              dataType: ["text"],
+              description: "Chunk text content",
             },
             {
-              name: 'source',
-              dataType: ['text'],
-              description: 'Source of the text',
+              name: "source",
+              dataType: ["text"],
+              description: "Source of the text",
             },
             {
-              name: 'blobType',
-              dataType: ['text'],
-              description: 'Type of blob/content',
+              name: "blobType",
+              dataType: ["text"],
+              description: "Type of blob/content",
             },
             {
-              name: 'loc_lines_from',
-              dataType: ['number'],
-              description: 'Starting line number',
+              name: "loc_lines_from",
+              dataType: ["number"],
+              description: "Starting line number",
             },
             {
-              name: 'loc_lines_to',
-              dataType: ['number'],
-              description: 'Ending line number',
+              name: "loc_lines_to",
+              dataType: ["number"],
+              description: "Ending line number",
             },
             {
-              name: 'document_name',
-              dataType: ['text'],
-              description: 'Source filename',
+              name: "document_name",
+              dataType: ["text"],
+              description: "Source filename",
             },
             {
-              name: 'chunk_index',
-              dataType: ['int'],
-              description: 'Chunk index',
+              name: "chunk_index",
+              dataType: ["int"],
+              description: "Chunk index",
             },
             {
-              name: 'title',
-              dataType: ['text'],
-              description: 'Original title',
+              name: "title",
+              dataType: ["text"],
+              description: "Original title",
             },
           ],
         }),
@@ -141,7 +143,7 @@ serve(async (req) => {
         throw new Error(`Failed to create schema: ${errorText}`);
       }
 
-      console.log('Schema created successfully');
+      console.log("Schema created successfully");
     } else if (!schemaCheckResponse.ok) {
       const errorText = await schemaCheckResponse.text();
       throw new Error(`Failed to check schema: ${errorText}`);
@@ -153,7 +155,7 @@ serve(async (req) => {
     const { files } = await req.json();
 
     if (!files || !Array.isArray(files) || files.length === 0) {
-      throw new Error('No files provided');
+      throw new Error("No files provided");
     }
 
     console.log(`Processing ${files.length} files...`);
@@ -163,43 +165,43 @@ serve(async (req) => {
 
     for (const file of files) {
       const { name, content, isTextFile = true, fileType, fileSize } = file;
-      
+
       if (!name || !content) {
-        console.warn('Skipping invalid file:', name);
+        console.warn("Skipping invalid file:", name);
         continue;
       }
-      
+
       // Handle binary files
       if (!isTextFile) {
         console.log(`Binary file detected: ${name}, storing in Supabase Storage...`);
-        
+
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
-        
+
         // Decode base64 content
-        const binaryData = Uint8Array.from(atob(content), c => c.charCodeAt(0));
-        
+        const binaryData = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
+
         // Create user-specific path
         const storagePath = userId ? `${userId}/${name}` : `anonymous/${Date.now()}_${name}`;
-        
+
         // Upload to storage (upsert allows overwriting existing files)
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('uploaded-files')
+          .from("uploaded-files")
           .upload(storagePath, binaryData, {
             contentType: fileType,
             upsert: true,
           });
-        
+
         if (uploadError) {
           console.error(`Failed to upload binary file ${name}:`, uploadError);
           throw new Error(`Failed to upload binary file ${name}: ${uploadError.message}`);
         }
-        
+
         console.log(`Binary file uploaded to: ${storagePath}`);
-        
+
         // Store metadata in database
         if (userId) {
           const { data: insertedFile, error: dbError } = await supabase
-            .from('uploaded_files')
+            .from("uploaded_files")
             .insert({
               user_id: userId,
               file_name: name,
@@ -211,7 +213,7 @@ serve(async (req) => {
             })
             .select()
             .single();
-          
+
           if (dbError) {
             console.error(`Failed to store file metadata:`, dbError);
           } else {
@@ -227,7 +229,7 @@ serve(async (req) => {
             storagePath,
           });
         }
-        
+
         continue;
       }
 
@@ -236,12 +238,12 @@ serve(async (req) => {
       const chunksForInsert: Array<{ content: string; title: string }> = [];
 
       const ext = name.toLowerCase();
-      
+
       // Handle JSON files (both standard and JSONL format)
-      if (ext.endsWith('.json') || ext.endsWith('.jsonl')) {
+      if (ext.endsWith(".json") || ext.endsWith(".jsonl")) {
         try {
           let items;
-          
+
           // First try to parse as standard JSON
           try {
             items = JSON.parse(content);
@@ -252,13 +254,16 @@ serve(async (req) => {
           } catch (parseError) {
             // If standard JSON fails, try JSONL format (one JSON object per line)
             console.log(`Standard JSON parse failed for ${name}, trying JSONL format...`);
-            const lines = content.trim().split('\n').filter((line: string) => line.trim());
+            const lines = content
+              .trim()
+              .split("\n")
+              .filter((line: string) => line.trim());
             items = [];
-            
+
             for (let lineNum = 0; lineNum < lines.length; lineNum++) {
               const line = lines[lineNum].trim();
               if (!line) continue;
-              
+
               try {
                 const obj = JSON.parse(line);
                 items.push(obj);
@@ -266,9 +271,11 @@ serve(async (req) => {
                 console.warn(`Skipping invalid JSON at line ${lineNum + 1}: ${line.substring(0, 50)}...`);
               }
             }
-            
+
             if (items.length === 0) {
-              throw new Error(`Could not parse ${name} as JSON or JSONL format. Please ensure the file contains valid JSON.`);
+              throw new Error(
+                `Could not parse ${name} as JSON or JSONL format. Please ensure the file contains valid JSON.`,
+              );
             }
           }
 
@@ -277,7 +284,7 @@ serve(async (req) => {
           for (let i = 0; i < items.length; i++) {
             const item = items[i];
             // Support multiple field names for content
-            const text = item.content || item.text || '';
+            const text = item.content || item.text || "";
             const title = item.title || item.name || `Item ${i + 1}`;
 
             if (!text) {
@@ -297,17 +304,17 @@ serve(async (req) => {
           console.error(`JSON processing error for ${name}:`, e);
           throw new Error(e instanceof Error ? e.message : `Failed to process JSON file ${name}`);
         }
-      } 
+      }
       // Handle CSV files
-      else if (ext.endsWith('.csv')) {
-        const lines = content.trim().split('\n');
-        const headers = lines[0]?.split(',') || [];
+      else if (ext.endsWith(".csv")) {
+        const lines = content.trim().split("\n");
+        const headers = lines[0]?.split(",") || [];
         console.log(`CSV file with ${lines.length - 1} rows`);
 
         for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(',');
-          const rowText = headers.map((h: string, idx: number) => `${h}: ${row[idx]}`).join('; ');
-          
+          const row = lines[i].split(",");
+          const rowText = headers.map((h: string, idx: number) => `${h}: ${row[idx]}`).join("; ");
+
           const chunks = chunkText(rowText);
           chunks.forEach((chunk, j) => {
             chunksForInsert.push({
@@ -336,15 +343,16 @@ serve(async (req) => {
       const batchSize = 100;
       for (let i = 0; i < chunksForInsert.length; i += batchSize) {
         const batch = chunksForInsert.slice(i, i + batchSize);
-        console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunksForInsert.length / batchSize)}`);
+        console.log(
+          `Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunksForInsert.length / batchSize)}`,
+        );
 
         const objects = batch.map((chunk, idx) => ({
           class: CLASS_NAME,
           properties: {
             text: chunk.content,
-            source: 'upload',
-            blobType: ext.endsWith('.json') || ext.endsWith('.jsonl') ? 'json' : 
-                      ext.endsWith('.csv') ? 'csv' : 'text',
+            source: "upload",
+            blobType: ext.endsWith(".json") || ext.endsWith(".jsonl") ? "json" : ext.endsWith(".csv") ? "csv" : "text",
             loc_lines_from: i + idx,
             loc_lines_to: i + idx + 1,
             title: chunk.title,
@@ -354,11 +362,11 @@ serve(async (req) => {
         }));
 
         const batchResponse = await fetch(`${formattedUrl}/v1/batch/objects`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Authorization': `Bearer ${weaviateApiKey}`,
-            'Content-Type': 'application/json',
-            'X-OpenAI-Api-Key': openaiApiKey,
+            Authorization: `Bearer ${weaviateApiKey}`,
+            "Content-Type": "application/json",
+            "X-OpenAI-Api-Key": openaiApiKey,
           },
           body: JSON.stringify({ objects }),
         });
@@ -370,7 +378,7 @@ serve(async (req) => {
         }
 
         const batchResult = await batchResponse.json();
-        console.log(`Batch ${Math.floor(i / batchSize) + 1} completed:`, batchResult.length, 'objects');
+        console.log(`Batch ${Math.floor(i / batchSize) + 1} completed:`, batchResult.length, "objects");
       }
 
       uploadedFiles.push({
@@ -383,24 +391,24 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: 'Files processed successfully',
+        message: "Files processed successfully",
         textFiles: uploadedFiles,
         binaryFiles,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error("Upload error:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'Upload failed',
+        error: error instanceof Error ? error.message : "Upload failed",
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
