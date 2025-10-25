@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Send, Paperclip, Mic, MicOff } from "lucide-react";
+import { Send, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -100,22 +100,6 @@ const ChatInput = ({ onSendMessage, onFileUpload, onAudioUpload, isVoiceMode, on
     <div className="border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="max-w-4xl mx-auto p-4">
         <div className="flex items-end gap-3">
-          <input
-            type="file"
-            id="file-upload"
-            className="hidden"
-            multiple
-            onChange={(e) => e.target.files && onFileUpload(e.target.files)}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="flex-shrink-0 border-border hover:bg-secondary"
-            onClick={() => document.getElementById("file-upload")?.click()}
-          >
-            <Paperclip className="h-5 w-5" />
-          </Button>
-
           <div className="flex-1 relative">
             <Textarea
               value={message}
