@@ -7,8 +7,27 @@ export async function sendToN8N(payload) {
   try {
     const formData = new FormData();
     
+    // Determine textType based on what data is present
+    let textType = "text";
+    const hasText = payload.textPrompt && payload.textPrompt.trim() !== '';
+    const hasAudio = !!payload.audioFile;
+    const hasDocument = !!payload.document;
+    
+    if (hasDocument && hasAudio) {
+      textType = "photo+voice";
+    } else if (hasText && hasDocument) {
+      textType = "text+photo";
+    } else if (hasDocument) {
+      textType = "photo";
+    } else if (hasAudio) {
+      textType = "voice";
+    } else {
+      textType = "text";
+    }
+    
     // Add text prompt
-    formData.append('textPrompt', payload.textPrompt);
+    formData.append('textPrompt', payload.textPrompt || '');
+    formData.append('textType', textType);
     
     // Add audio file (if available)
     if (payload.audioFile) {
@@ -25,6 +44,7 @@ export async function sendToN8N(payload) {
       timestamp: new Date().toISOString(),
       uploadId: `upload_${Date.now()}`,
       userAgent: navigator.userAgent,
+      textType,
       ...payload.metadata
     };
     formData.append('metadata', JSON.stringify(metadata));
@@ -68,19 +88,38 @@ export async function sendTextToN8N(textPrompt, metadata) {
  */
 export async function sendToN8NAsJSON(payload) {
   try {
+    // Determine textType based on what data is present
+    let textType = "text";
+    const hasText = payload.textPrompt && payload.textPrompt.trim() !== '';
+    const hasAudio = !!payload.audioBase64;
+    const hasDocument = !!payload.documentBase64;
+    
+    if (hasDocument && hasAudio) {
+      textType = "photo+voice";
+    } else if (hasText && hasDocument) {
+      textType = "text+photo";
+    } else if (hasDocument) {
+      textType = "photo";
+    } else if (hasAudio) {
+      textType = "voice";
+    } else {
+      textType = "text";
+    }
+    
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        textPrompt: payload.textPrompt,
-        textType: "text",
+        textPrompt: payload.textPrompt || '',
+        textType,
         audioBase64: payload.audioBase64,
         documentBase64: payload.documentBase64,
         metadata: {
           timestamp: new Date().toISOString(),
           uploadId: `upload_${Date.now()}`,
+          textType,
           ...payload.metadata
         }
       }),
