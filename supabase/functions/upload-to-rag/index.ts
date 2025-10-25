@@ -129,11 +129,6 @@ serve(async (req) => {
               dataType: ["int"],
               description: "Chunk index",
             },
-            {
-              name: "title",
-              dataType: ["text"],
-              description: "Original title",
-            },
           ],
         }),
       });
@@ -363,7 +358,6 @@ serve(async (req) => {
             blobType: ext.endsWith(".json") || ext.endsWith(".jsonl") ? "json" : ext.endsWith(".csv") ? "csv" : "text",
             loc_lines_from: i + idx,
             loc_lines_to: i + idx + 1,
-            title: chunk.title,
             document_name: name,
             chunk_index: i + idx,
           },
