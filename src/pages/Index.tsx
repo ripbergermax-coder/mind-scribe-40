@@ -212,66 +212,95 @@ const Index = () => {
     // Clear any existing pending deletion
     if (pendingDeletion) {
       clearTimeout(pendingDeletion.timeout);
+      setPendingDeletion(null);
     }
 
-    // Optimistically remove from UI
-    setChats((prev) => prev.filter((c) => c.id !== chatId));
+    try {
+      // Delete from database immediately
+      const { error } = await supabase.from("chats").delete().eq("id", chatId);
+      if (error) throw error;
 
-    // Handle current chat navigation
-    if (currentChatId === chatId) {
-      const remainingChats = chats.filter((c) => c.id !== chatId);
-      if (remainingChats.length > 0) {
-        setCurrentChatId(remainingChats[0].id);
-      } else {
-        handleCreateNewChat();
+      // Remove from UI
+      setChats((prev) => prev.filter((c) => c.id !== chatId));
+
+      // Handle current chat navigation
+      if (currentChatId === chatId) {
+        const remainingChats = chats.filter((c) => c.id !== chatId);
+        if (remainingChats.length > 0) {
+          setCurrentChatId(remainingChats[0].id);
+        } else {
+          handleCreateNewChat();
+        }
       }
+
+      // Show undo toast that re-inserts on undo
+      toast({
+        title: "Chat deleted",
+        description: "Undo to restore",
+        action: (
+          <ToastAction
+            altText="Undo deletion"
+            onClick={async () => {
+              try {
+                // Re-insert the chat
+                const { data: restoredChat, error: restoreError } = await supabase
+                  .from("chats")
+                  .insert({
+                    id: chatToDelete.id,
+                    title: chatToDelete.title,
+                    user_id: chatToDelete.user_id,
+                    project_id: chatToDelete.project_id,
+                    created_at: chatToDelete.timestamp,
+                  })
+                  .select()
+                  .single();
+
+                if (restoreError) throw restoreError;
+
+                // Re-insert all messages
+                if (chatToDelete.messages.length > 0) {
+                  const messagesToInsert = chatToDelete.messages.map((msg) => ({
+                    chat_id: chatToDelete.id,
+                    role: msg.role,
+                    content: msg.content,
+                  }));
+
+                  await supabase.from("messages").insert(messagesToInsert);
+                }
+
+                // Restore in UI
+                setChats((prev) =>
+                  [...prev, chatToDelete].sort(
+                    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                  )
+                );
+
+                toast({
+                  title: "Restored",
+                  description: "Chat has been restored",
+                });
+              } catch (error) {
+                console.error("Error restoring chat:", error);
+                toast({
+                  title: "Error",
+                  description: "Failed to restore chat",
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chat",
+        variant: "destructive",
+      });
     }
-
-    // Set up delayed deletion with undo
-    const timeout = setTimeout(async () => {
-      try {
-        const { error } = await supabase.from("chats").delete().eq("id", chatId);
-        if (error) throw error;
-        setPendingDeletion(null);
-      } catch (error) {
-        console.error("Error deleting chat:", error);
-        // Restore the chat on error
-        setChats((prev) => [...prev, chatToDelete].sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ));
-        toast({
-          title: "Error",
-          description: "Failed to delete chat",
-          variant: "destructive",
-        });
-      }
-    }, 5000);
-
-    setPendingDeletion({ type: "chat", id: chatId, timeout });
-
-    // Show undo toast
-    toast({
-      title: "Chat deleted",
-      description: "Undo to restore",
-      action: (
-        <ToastAction
-          altText="Undo deletion"
-          onClick={() => {
-            clearTimeout(timeout);
-            setPendingDeletion(null);
-            setChats((prev) => [...prev, chatToDelete].sort((a, b) => 
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            ));
-            toast({
-              title: "Restored",
-              description: "Chat has been restored",
-            });
-          }}
-        >
-          Undo
-        </ToastAction>
-      ),
-    });
   };
 
   const handleRenameChat = (chatId: string) => {
@@ -349,52 +378,64 @@ const Index = () => {
     // Clear any existing pending deletion
     if (pendingDeletion) {
       clearTimeout(pendingDeletion.timeout);
+      setPendingDeletion(null);
     }
 
-    // Optimistically remove from UI
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    try {
+      // Delete from database immediately
+      const { error } = await supabase.from("projects").delete().eq("id", projectId);
+      if (error) throw error;
 
-    // Set up delayed deletion with undo
-    const timeout = setTimeout(async () => {
-      try {
-        const { error } = await supabase.from("projects").delete().eq("id", projectId);
-        if (error) throw error;
-        setPendingDeletion(null);
-      } catch (error) {
-        console.error("Error deleting project:", error);
-        // Restore the project on error
-        setProjects((prev) => [...prev, projectToDelete]);
-        toast({
-          title: "Error",
-          description: "Failed to delete project",
-          variant: "destructive",
-        });
-      }
-    }, 5000);
+      // Remove from UI
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
 
-    setPendingDeletion({ type: "project", id: projectId, timeout });
+      // Show undo toast that re-inserts on undo
+      toast({
+        title: "Project deleted",
+        description: "Undo to restore",
+        action: (
+          <ToastAction
+            altText="Undo deletion"
+            onClick={async () => {
+              try {
+                // Re-insert the project
+                const { error: restoreError } = await supabase.from("projects").insert({
+                  id: projectToDelete.id,
+                  name: projectToDelete.name,
+                  user_id: projectToDelete.user_id,
+                });
 
-    // Show undo toast
-    toast({
-      title: "Project deleted",
-      description: "Undo to restore",
-      action: (
-        <ToastAction
-          altText="Undo deletion"
-          onClick={() => {
-            clearTimeout(timeout);
-            setPendingDeletion(null);
-            setProjects((prev) => [...prev, projectToDelete]);
-            toast({
-              title: "Restored",
-              description: "Project has been restored",
-            });
-          }}
-        >
-          Undo
-        </ToastAction>
-      ),
-    });
+                if (restoreError) throw restoreError;
+
+                // Restore in UI
+                setProjects((prev) => [...prev, projectToDelete]);
+
+                toast({
+                  title: "Restored",
+                  description: "Project has been restored",
+                });
+              } catch (error) {
+                console.error("Error restoring project:", error);
+                toast({
+                  title: "Error",
+                  description: "Failed to restore project",
+                  variant: "destructive",
+                });
+              }
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
+      });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRenameProject = (projectId: string) => {
