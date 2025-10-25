@@ -230,6 +230,14 @@ serve(async (req) => {
 
       console.log(`Processing file: ${name}`);
 
+      // Get user information for sender_name
+      let senderName = "User";
+      if (userId && authHeader) {
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+        senderName = user?.email?.split('@')[0] || user?.user_metadata?.name || "User";
+      }
+
       const chunksForInsert: Array<{ content: string; title: string }> = [];
 
       const ext = name.toLowerCase();
@@ -329,13 +337,61 @@ serve(async (req) => {
       }
       // Handle all other text-based files (.txt, .md, .xml, .yaml, .log, .html, .css, .js, .ts, etc.)
       else {
-        const chunks = chunkText(content);
+        console.log(`Processing text file: ${name} with LLM metadata generation`);
+        
+        // Use LLM to generate metadata for the document
+        const metadataPrompt = `Analyze this document and provide:
+1. A brief title (max 10 words) that captures the essence
+2. A category (1-2 words like "Technical", "Report", "Documentation", etc.)
+3. A department (1-2 words like "Engineering", "Sales", "Support", etc.)
+
+Document name: ${name}
+Content preview: ${content.substring(0, 500)}...
+
+Respond ONLY with a JSON object in this format:
+{"title": "...", "category": "...", "department": "..."}`;
+
+        const metadataResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: metadataPrompt }],
+            temperature: 0.3,
+          }),
+        });
+
+        let metadata = {
+          title: name,
+          category: "General",
+          department: "Support"
+        };
+
+        if (metadataResponse.ok) {
+          const metadataResult = await metadataResponse.json();
+          try {
+            const parsed = JSON.parse(metadataResult.choices[0].message.content);
+            metadata = { ...metadata, ...parsed };
+          } catch (e) {
+            console.warn("Failed to parse LLM metadata response, using defaults");
+          }
+        }
+
+        const effectiveDate = new Date().toISOString().split('T')[0];
+        
+        // Format the entire content in the structured format
+        const formattedContent = `sender_name: "${senderName}", receiver_name: "ChatBot", title: "${metadata.title}"; content: "${content.replace(/"/g, '\\"')}"; category: "${metadata.category}"; department: "${metadata.department}"; effective_date: "${effectiveDate}";`;
+        
+        const chunks = chunkText(formattedContent);
         console.log(`${name} split into ${chunks.length} chunks`);
 
         chunks.forEach((chunk) => {
           chunksForInsert.push({
             content: chunk,
-            title: name,
+            title: metadata.title,
           });
         });
       }
