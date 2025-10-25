@@ -4,34 +4,44 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
 interface Chat {
   id: string;
   title: string;
+  messages: Message[];
   timestamp: string;
 }
 
 interface Project {
   id: string;
   name: string;
-  chatCount: number;
+  chats: Chat[];
 }
 
 interface ChatSidebarProps {
   collapsed?: boolean;
+  chats: Chat[];
+  projects: Project[];
+  currentChatId: string;
+  onNewChat: () => void;
+  onSelectChat: (chatId: string) => void;
 }
 
-const ChatSidebar = ({ collapsed = false }: ChatSidebarProps) => {
-  const recentChats: Chat[] = [
-    { id: "1", title: "Project Planning Discussion", timestamp: "2m ago" },
-    { id: "2", title: "Research Notes Summary", timestamp: "1h ago" },
-    { id: "3", title: "Meeting Transcription", timestamp: "3h ago" },
-  ];
-
-  const projects: Project[] = [
-    { id: "1", name: "Product Launch", chatCount: 12 },
-    { id: "2", name: "Research & Development", chatCount: 8 },
-    { id: "3", name: "Marketing Campaign", chatCount: 5 },
-  ];
+const ChatSidebar = ({ 
+  collapsed = false, 
+  chats, 
+  projects, 
+  currentChatId,
+  onNewChat,
+  onSelectChat 
+}: ChatSidebarProps) => {
+  const recentChats = chats.slice(0, 10);
 
   return (
     <div className={cn(
@@ -48,6 +58,8 @@ const ChatSidebar = ({ collapsed = false }: ChatSidebarProps) => {
           variant="ghost"
           size="icon"
           className="hover:bg-sidebar-accent"
+          onClick={onNewChat}
+          title="New Chat"
         >
           <Plus className="h-5 w-5" />
         </Button>
@@ -70,14 +82,18 @@ const ChatSidebar = ({ collapsed = false }: ChatSidebarProps) => {
                   variant="ghost"
                   className={cn(
                     "w-full justify-start hover:bg-sidebar-accent group",
-                    collapsed && "px-2"
+                    collapsed && "px-2",
+                    currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
                   )}
+                  onClick={() => onSelectChat(chat.id)}
                 >
                   <MessageSquare className="h-4 w-4 mr-3 text-muted-foreground group-hover:text-primary transition-colors" />
                   {!collapsed && (
                     <div className="flex-1 text-left overflow-hidden">
                       <p className="text-sm truncate">{chat.title}</p>
-                      <p className="text-xs text-muted-foreground">{chat.timestamp}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {chat.messages.length} messages
+                      </p>
                     </div>
                   )}
                 </Button>
@@ -109,7 +125,7 @@ const ChatSidebar = ({ collapsed = false }: ChatSidebarProps) => {
                   {!collapsed && (
                     <div className="flex-1 flex items-center justify-between">
                       <span className="text-sm">{project.name}</span>
-                      <span className="text-xs text-muted-foreground">{project.chatCount}</span>
+                      <span className="text-xs text-muted-foreground">{project.chats.length}</span>
                     </div>
                   )}
                 </Button>

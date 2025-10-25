@@ -22,19 +22,78 @@ interface UploadedFile {
   size: string;
 }
 
+interface Chat {
+  id: string;
+  title: string;
+  messages: Message[];
+  timestamp: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  chats: Chat[];
+}
+
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
+  const [currentChatId, setCurrentChatId] = useState<string>("1");
+  const [chats, setChats] = useState<Chat[]>([
     {
       id: "1",
-      role: "assistant",
-      content: "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
-      timestamp: "just now"
+      title: "New Conversation",
+      timestamp: new Date().toISOString(),
+      messages: [
+        {
+          id: "1",
+          role: "assistant",
+          content: "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
+          timestamp: "just now"
+        }
+      ]
+    }
+  ]);
+  const [projects, setProjects] = useState<Project[]>([
+    {
+      id: "1",
+      name: "Personal",
+      chats: []
     }
   ]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
+
+  const currentChat = chats.find(c => c.id === currentChatId);
+  const messages = currentChat?.messages || [];
+
+  const handleCreateNewChat = () => {
+    const newChat: Chat = {
+      id: Date.now().toString(),
+      title: "New Conversation",
+      timestamp: new Date().toISOString(),
+      messages: [
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: "Hello! I'm your AI Second Brain. Upload documents, ask questions, or switch to voice mode. How can I help you today?",
+          timestamp: "just now"
+        }
+      ]
+    };
+    setChats(prev => [newChat, ...prev]);
+    setCurrentChatId(newChat.id);
+    setUploadedFiles([]);
+    toast({
+      title: "New chat created",
+      description: "Started a fresh conversation"
+    });
+  };
+
+  const handleSelectChat = (chatId: string) => {
+    setCurrentChatId(chatId);
+    setUploadedFiles([]);
+  };
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -44,11 +103,26 @@ const Index = () => {
       timestamp: "just now"
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    setChats(prev => prev.map(chat => 
+      chat.id === currentChatId 
+        ? { ...chat, messages: [...chat.messages, userMessage] }
+        : chat
+    ));
+
+    // Update chat title if it's the first user message
+    if (currentChat && currentChat.messages.length === 1) {
+      const title = content.slice(0, 50) + (content.length > 50 ? "..." : "");
+      setChats(prev => prev.map(chat =>
+        chat.id === currentChatId
+          ? { ...chat, title }
+          : chat
+      ));
+    }
 
     // Send to N8N
     const n8nResponse = await sendTextToN8N(content, {
       messageId: userMessage.id,
+      chatId: currentChatId,
       source: 'chat',
       isVoiceMode
     });
@@ -69,7 +143,11 @@ const Index = () => {
         content: "I understand your question. This is a demo response. In a full implementation, I would process your input and provide intelligent insights based on your documents and conversation history.",
         timestamp: "just now"
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setChats(prev => prev.map(chat =>
+        chat.id === currentChatId
+          ? { ...chat, messages: [...chat.messages, aiMessage] }
+          : chat
+      ));
     }, 1000);
   };
 
@@ -91,6 +169,7 @@ const Index = () => {
           fileName: file.name,
           fileSize: file.size,
           fileType: file.type,
+          chatId: currentChatId,
           source: 'upload'
         }
       });
@@ -124,7 +203,14 @@ const Index = () => {
 
   return (
     <div className="flex h-screen w-full bg-background">
-      <ChatSidebar collapsed={sidebarCollapsed} />
+      <ChatSidebar 
+        collapsed={sidebarCollapsed} 
+        chats={chats}
+        projects={projects}
+        currentChatId={currentChatId}
+        onNewChat={handleCreateNewChat}
+        onSelectChat={handleSelectChat}
+      />
       
       <div className="flex-1 flex flex-col">
         {/* Header */}
@@ -138,7 +224,7 @@ const Index = () => {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold">New Conversation</h1>
+            <h1 className="text-lg font-semibold">{currentChat?.title || "New Conversation"}</h1>
             <p className="text-sm text-muted-foreground">Ask questions, upload docs, or use voice</p>
           </div>
         </div>
