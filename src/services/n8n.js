@@ -1,126 +1,23 @@
 const N8N_WEBHOOK_URL = 'https://customm.app.n8n.cloud/webhook/b787719b-fce6-4896-94d7-51bb862af30f';
 
 /**
- * Sends data (text, audio, documents) to N8N webhook
+ * Sends text to N8N webhook
  */
-export async function sendToN8N(payload) {
+export async function sendTextToN8N(textPrompt, metadata = {}) {
   try {
-    const formData = new FormData();
-    
-    // Determine textType based on what data is present
-    let textType = "text";
-    const hasText = payload.textPrompt && payload.textPrompt.trim() !== '';
-    const hasAudio = !!payload.audioFile;
-    const hasDocument = !!payload.document;
-    
-    if (hasDocument && hasAudio) {
-      textType = "photo+voice";
-    } else if (hasText && hasDocument) {
-      textType = "text+photo";
-    } else if (hasDocument) {
-      textType = "photo";
-    } else if (hasAudio) {
-      textType = "voice";
-    } else {
-      textType = "text";
-    }
-    
-    // Add text prompt
-    formData.append('textPrompt', payload.textPrompt || '');
-    formData.append('textType', textType);
-    
-    // Add audio file (if available) - use 'file' as field name for n8n binary detection
-    if (payload.audioFile) {
-      formData.append('file', payload.audioFile, payload.audioFile.name || 'audio.webm');
-    }
-    
-    // Add document (if available)
-    if (payload.document) {
-      formData.append('document', payload.document);
-    }
-    
-    // Add metadata
-    const metadata = {
-      timestamp: new Date().toISOString(),
-      uploadId: `upload_${Date.now()}`,
-      userAgent: navigator.userAgent,
-      textType,
-      ...payload.metadata
-    };
-    formData.append('metadata', JSON.stringify(metadata));
-
-    const response = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    return {
-      success: true,
-      message: 'Data successfully sent to N8N',
-      data
-    };
-
-  } catch (error) {
-    console.error('Error sending data to N8N:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return {
-      success: false,
-      message: `N8N Error: ${errorMessage}`
-    };
-  }
-}
-
-/**
- * Sends only text (without files)
- */
-export async function sendTextToN8N(textPrompt, metadata) {
-  return sendToN8N({ textPrompt, metadata });
-}
-
-/**
- * Sends data as JSON (for smaller files as Base64)
- */
-export async function sendToN8NAsJSON(payload) {
-  try {
-    // Determine textType based on what data is present
-    let textType = "text";
-    const hasText = payload.textPrompt && payload.textPrompt.trim() !== '';
-    const hasAudio = !!payload.audioBase64;
-    const hasDocument = !!payload.documentBase64;
-    
-    if (hasDocument && hasAudio) {
-      textType = "photo+voice";
-    } else if (hasText && hasDocument) {
-      textType = "text+photo";
-    } else if (hasDocument) {
-      textType = "photo";
-    } else if (hasAudio) {
-      textType = "voice";
-    } else {
-      textType = "text";
-    }
-    
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        textPrompt: payload.textPrompt || '',
-        textType,
-        audioBase64: payload.audioBase64,
-        documentBase64: payload.documentBase64,
+        textPrompt: textPrompt || '',
+        textType: 'text',
         metadata: {
           timestamp: new Date().toISOString(),
           uploadId: `upload_${Date.now()}`,
-          textType,
-          ...payload.metadata
+          userAgent: navigator.userAgent,
+          ...metadata
         }
       }),
     });
@@ -147,14 +44,3 @@ export async function sendToN8NAsJSON(payload) {
   }
 }
 
-/**
- * Helper function: Converts File to Base64
- */
-export function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
-  });
-}
