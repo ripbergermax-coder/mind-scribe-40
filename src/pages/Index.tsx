@@ -662,12 +662,39 @@ const Index = () => {
   };
 
   const handleUploadFiles = async (files: File[]) => {
+    const TEXT_EXTENSIONS = ['.txt', '.md', '.json', '.jsonl', '.csv', '.xml', '.yaml', '.yml', '.log', '.js', '.ts', '.tsx', '.html', '.css'];
+    
     const fileDataPromises = files.map(async (file) => {
-      const content = await file.text();
-      return {
-        name: file.name,
-        content,
-      };
+      const extension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const isTextFile = TEXT_EXTENSIONS.includes(extension);
+      
+      if (isTextFile) {
+        // For text files, read as text
+        const content = await file.text();
+        return {
+          name: file.name,
+          content,
+          isTextFile: true,
+          fileType: file.type,
+          fileSize: file.size,
+        };
+      } else {
+        // For binary files, convert to base64
+        return new Promise<any>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve({
+              name: file.name,
+              content: base64,
+              isTextFile: false,
+              fileType: file.type || 'application/octet-stream',
+              fileSize: file.size,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      }
     });
 
     const fileData = await Promise.all(fileDataPromises);
@@ -681,9 +708,22 @@ const Index = () => {
         throw response.error;
       }
 
+      const result = response.data;
+      const textFilesCount = fileData.filter(f => f.isTextFile).length;
+      const binaryFilesCount = fileData.filter(f => !f.isTextFile).length;
+      
+      let message = '';
+      if (textFilesCount > 0 && binaryFilesCount > 0) {
+        message = `${textFilesCount} text file(s) uploaded to RAG, ${binaryFilesCount} binary file(s) stored`;
+      } else if (textFilesCount > 0) {
+        message = `${textFilesCount} file(s) uploaded to RAG storage`;
+      } else {
+        message = `${binaryFilesCount} binary file(s) stored`;
+      }
+
       toast({
         title: "Success",
-        description: `${files.length} file(s) uploaded to RAG storage`,
+        description: message,
       });
 
       // Add to UI state

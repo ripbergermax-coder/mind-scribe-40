@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,9 +31,27 @@ serve(async (req) => {
     const weaviateUrl = Deno.env.get('WEAVIATE_URL');
     const weaviateApiKey = Deno.env.get('WEAVIATE_API_KEY');
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!weaviateUrl || !weaviateApiKey || !openaiApiKey) {
+    if (!weaviateUrl || !weaviateApiKey || !openaiApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing required environment variables');
+    }
+
+    // Get user ID from auth header
+    const authHeader = req.headers.get('Authorization');
+    let userId = null;
+    
+    if (authHeader) {
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+      
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      userId = user?.id;
     }
 
     console.log('Connecting to Weaviate...');
@@ -120,12 +139,67 @@ serve(async (req) => {
     console.log(`Processing ${files.length} files...`);
 
     const uploadedFiles = [];
+    const binaryFiles = [];
 
     for (const file of files) {
-      const { name, content } = file;
+      const { name, content, isTextFile = true, fileType, fileSize } = file;
       
       if (!name || !content) {
         console.warn('Skipping invalid file:', name);
+        continue;
+      }
+      
+      // Handle binary files
+      if (!isTextFile) {
+        console.log(`Binary file detected: ${name}, storing in Supabase Storage...`);
+        
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Decode base64 content
+        const binaryData = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+        
+        // Create user-specific path
+        const storagePath = userId ? `${userId}/${name}` : `anonymous/${Date.now()}_${name}`;
+        
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('uploaded-files')
+          .upload(storagePath, binaryData, {
+            contentType: fileType,
+            upsert: false,
+          });
+        
+        if (uploadError) {
+          console.error(`Failed to upload binary file ${name}:`, uploadError);
+          throw new Error(`Failed to upload binary file ${name}: ${uploadError.message}`);
+        }
+        
+        console.log(`Binary file uploaded to: ${storagePath}`);
+        
+        // Store metadata in database
+        if (userId) {
+          const { error: dbError } = await supabase
+            .from('uploaded_files')
+            .insert({
+              user_id: userId,
+              file_name: name,
+              file_type: fileType,
+              file_size: fileSize,
+              storage_path: storagePath,
+              is_text_file: false,
+              rag_processed: false,
+            });
+          
+          if (dbError) {
+            console.error(`Failed to store file metadata:`, dbError);
+          }
+        }
+        
+        binaryFiles.push({
+          name,
+          storagePath,
+        });
+        
         continue;
       }
 
@@ -276,8 +350,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: 'Files uploaded successfully',
-        files: uploadedFiles,
+        message: 'Files processed successfully',
+        textFiles: uploadedFiles,
+        binaryFiles,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
