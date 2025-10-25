@@ -1026,7 +1026,7 @@ const Index = () => {
         <ResizableHandle withHandle />
 
         <ResizablePanel defaultSize={80} minSize={30}>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full relative">
             {/* Header */}
             <div className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center px-4 gap-3">
               <Button
@@ -1043,9 +1043,8 @@ const Index = () => {
               </div>
             </div>
 
-
-            {/* Messages */}
-            <ScrollArea className="flex-1 relative">
+            {/* Chat Container with Stars Background */}
+            <div className="flex-1 relative overflow-hidden">
               <StarBackground />
               
               {/* Document Upload Floating Button */}
@@ -1056,24 +1055,27 @@ const Index = () => {
                 onProcessBinaryFiles={handleProcessBinaryFiles}
               />
               
-              <div className="max-w-4xl mx-auto relative z-10">
-                {messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    role={message.role}
-                    content={message.content}
-                    timestamp={message.timestamp}
-                  />
-                ))}
-                {isAiLoading && (
-                  <ChatMessage
-                    role="assistant"
-                    content=""
-                    isLoading={true}
-                  />
-                )}
-              </div>
-            </ScrollArea>
+              {/* Messages */}
+              <ScrollArea className="h-full">
+                <div className="max-w-4xl mx-auto px-4 py-6 space-y-4 min-h-full">
+                  {messages.map((message) => (
+                    <ChatMessage
+                      key={message.id}
+                      role={message.role}
+                      content={message.content}
+                      timestamp={message.timestamp}
+                    />
+                  ))}
+                  {isAiLoading && (
+                    <ChatMessage
+                      role="assistant"
+                      content=""
+                      isLoading={true}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
 
             {/* Input */}
             <ChatInput
