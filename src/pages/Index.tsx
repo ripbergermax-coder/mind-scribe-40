@@ -272,30 +272,80 @@ const Index = () => {
 
   const handleAudioUpload = async (audioBlob: Blob) => {
     try {
-      const audioFile = new File([audioBlob], `audio_${Date.now()}.webm`, {
-        type: "audio/webm",
+      toast({
+        title: "Transcribing...",
+        description: "Converting audio to text",
       });
 
-      const n8nResponse = await sendToN8N({
-        textPrompt: "",
-        audioFile: audioFile,
-        metadata: {
-          chatId: currentChatId,
-          source: "voice",
-          timestamp: new Date().toISOString(),
+      // Convert audio blob to base64
+      const reader = new FileReader();
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      // Send to OpenAI STT via edge function
+      const sttResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ audio: base64Audio }),
       });
 
-      if (!n8nResponse.success) {
+      if (!sttResponse.ok) {
+        throw new Error('Failed to transcribe audio');
+      }
+
+      const { text } = await sttResponse.json();
+
+      if (!text) {
         toast({
           title: "Error",
-          description: "Failed to process audio",
+          description: "No speech detected in audio",
           variant: "destructive",
         });
         return;
       }
 
-      // Handle response similar to text messages
+      // Display the transcribed text as a user message
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: text,
+        timestamp: "just now",
+      };
+
+      setChats((prev) =>
+        prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, userMessage] } : chat)),
+      );
+
+      toast({
+        title: "Transcribed",
+        description: "Sending to N8N for processing",
+      });
+
+      // Now send the transcribed text to N8N
+      const n8nResponse = await sendTextToN8N(text, {
+        chatId: currentChatId,
+        source: "voice",
+        originalFormat: "audio",
+      });
+
+      if (!n8nResponse.success) {
+        toast({
+          title: "Error",
+          description: "Failed to process with N8N",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Handle N8N response
       let aiResponseContent = "Audio processed but no response received.";
 
       if (n8nResponse.data?.data?.response) {
@@ -309,7 +359,7 @@ const Index = () => {
       }
 
       const aiMessage: Message = {
-        id: Date.now().toString(),
+        id: (Date.now() + 1).toString(),
         role: "assistant",
         content: aiResponseContent,
         timestamp: "just now",
@@ -319,10 +369,10 @@ const Index = () => {
         prev.map((chat) => (chat.id === currentChatId ? { ...chat, messages: [...chat.messages, aiMessage] } : chat)),
       );
     } catch (error) {
-      console.error("Error uploading audio:", error);
+      console.error("Error processing audio:", error);
       toast({
         title: "Error",
-        description: "Failed to upload audio",
+        description: "Failed to process audio",
         variant: "destructive",
       });
     }
