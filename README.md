@@ -11,15 +11,17 @@ I built Tacto Guide as a comprehensive AI chat platform that combines conversati
 ## ✨ Key Features
 
 ### Core Functionality
-- **AI Chat Interface**: Intelligent conversational AI assistant (Tacto Guide) with streaming responses
+
+- **AI Chat Interface**: Intelligent conversational AI assistant (Tacto Guide)
 - **Document RAG System**: Upload and process documents for context-aware AI responses
 - **Multi-Format Support**: Process text files (TXT, JSON, JSONL, CSV), PDFs, images, and office documents
 - **Audio Transcription**: Voice-to-text using OpenAI Whisper API
 - **Project Management**: Organize conversations into projects with full CRUD operations
-- **Chat History**: Persistent conversation storage with drag-and-drop reordering
+- **Chat History**: Persistent conversation storage
 - **Real-time Processing**: Live document processing and indexing status updates
 
 ### Technical Features
+
 - **Vector Search**: Weaviate integration for semantic document search
 - **Binary File Processing**: Automatic text extraction from PDFs and images via OCR
 - **Metadata Generation**: AI-powered document categorization and tagging
@@ -31,6 +33,7 @@ I built Tacto Guide as a comprehensive AI chat platform that combines conversati
 ## 🛠 Technology Stack
 
 ### Frontend
+
 - **React 18.3.1** - UI framework
 - **TypeScript** - Type-safe development
 - **Vite** - Build tool and dev server
@@ -41,18 +44,22 @@ I built Tacto Guide as a comprehensive AI chat platform that combines conversati
 - **Lucide React** - Icon system
 
 ### Backend & Infrastructure
+
 - **Lovable Cloud** - Full-stack cloud platform (Supabase-powered)
 - **Supabase Auth** - User authentication and authorization
 - **Supabase Storage** - File storage and management
 - **Supabase Edge Functions** - Serverless backend logic (Deno runtime)
 - **PostgreSQL** - Primary database with Row Level Security (RLS)
+- **N8N Integration**: Webhook-based workflow automation
 
 ### AI & ML Services
+
 - **Weaviate** - Vector database for RAG
 - **OpenAI API** - GPT models and Whisper transcription
 - **N8N** - Workflow automation platform
 
 ### Additional Tools
+
 - **@dnd-kit** - Drag and drop functionality
 - **date-fns** - Date manipulation
 - **zod** - Schema validation
@@ -67,6 +74,12 @@ I built Tacto Guide as a comprehensive AI chat platform that combines conversati
 - **N8N Webhook URL** (optional) - For workflow integration
 
 ## 🔧 Installation & Setup
+
+### Cloud usage:
+
+For visiting the project in the cloud just use this link:
+https://munichhack.lovable.app/
+and sign up :)
 
 ### 1. Clone the Repository
 
@@ -98,11 +111,13 @@ The project uses Lovable Cloud which automatically configures Supabase environme
 The following secrets must be configured in Lovable Cloud for Edge Functions:
 
 #### Required Secrets
+
 - `OPENAI_API_KEY` - OpenAI API key for GPT and Whisper
 - `WEAVIATE_URL` - Your Weaviate instance URL
 - `WEAVIATE_API_KEY` - Weaviate API authentication key
 
 #### Optional Secrets
+
 - Additional integrations can be added via Lovable Cloud settings
 
 **To add secrets**: Navigate to your Lovable project → Settings → Secrets
@@ -153,6 +168,8 @@ src/
 
 ### Backend Architecture (Edge Functions)
 
+//please note that our AI Logic/Backend is hosted in n8n for the n8n logic please refer to this repo:
+
 ```
 supabase/functions/
 ├── upload-to-rag/           # Document processing & RAG indexing
@@ -163,20 +180,22 @@ supabase/functions/
 ### Data Flow
 
 1. **Document Upload Flow**:
+
    ```
-   User Upload → Supabase Storage → Edge Function → Text Extraction → 
+   User Upload → Supabase Storage → Edge Function → Text Extraction →
    Metadata Generation (GPT) → Text Chunking → Weaviate Indexing
    ```
 
 2. **Chat Flow**:
+
    ```
-   User Message → N8N Webhook → AI Processing → 
+   User Message → N8N Webhook → AI Agent doing Magic→
    RAG Context Retrieval (Weaviate) → Response Generation
    ```
 
 3. **Audio Flow**:
    ```
-   Voice Recording → Base64 Encoding → Edge Function → 
+   Voice Recording → Base64 Encoding → Edge Function →
    OpenAI Whisper API → Transcribed Text → Chat Input
    ```
 
@@ -185,6 +204,7 @@ supabase/functions/
 ### Edge Functions
 
 #### 1. `upload-to-rag`
+
 **Purpose**: Process and index documents into Weaviate
 
 **Endpoint**: `https://<project-ref>.supabase.co/functions/v1/upload-to-rag`
@@ -194,6 +214,7 @@ supabase/functions/
 **Authentication**: Required (Bearer token)
 
 **Request Body**:
+
 ```typescript
 {
   files: Array<{
@@ -208,6 +229,7 @@ supabase/functions/
 ```
 
 **Response**:
+
 ```typescript
 {
   textFiles: Array<{fileName: string}>;
@@ -217,6 +239,7 @@ supabase/functions/
 ```
 
 **Features**:
+
 - Text chunking with configurable overlap (default: 220 chars, 40 overlap)
 - GPT-4 metadata generation (title, category, department)
 - Weaviate schema auto-creation
@@ -224,6 +247,7 @@ supabase/functions/
 - Support for JSON, JSONL, CSV, and plain text
 
 #### 2. `process-binary-files`
+
 **Purpose**: Extract text from PDFs and images
 
 **Endpoint**: `https://<project-ref>.supabase.co/functions/v1/process-binary-files`
@@ -233,6 +257,7 @@ supabase/functions/
 **Authentication**: Optional
 
 **Request Body**:
+
 ```typescript
 {
   fileIds: string[];  // IDs from uploaded_files table
@@ -240,6 +265,7 @@ supabase/functions/
 ```
 
 **Response**:
+
 ```typescript
 {
   processedFiles: Array<{
@@ -252,11 +278,13 @@ supabase/functions/
 ```
 
 **Supported Formats**:
+
 - PDF (text extraction via pattern matching)
 - Images (PNG, JPG, JPEG, WEBP) - uses GPT-4 Vision
 - Documents (DOCX, DOC) - basic text extraction
 
 #### 3. `transcribe-audio`
+
 **Purpose**: Convert speech to text
 
 **Endpoint**: `https://<project-ref>.supabase.co/functions/v1/transcribe-audio`
@@ -266,6 +294,7 @@ supabase/functions/
 **Authentication**: Not required
 
 **Request Body**:
+
 ```typescript
 {
   audio: string;  // Base64 encoded audio (WebM, MP3, WAV, M4A)
@@ -273,6 +302,7 @@ supabase/functions/
 ```
 
 **Response**:
+
 ```typescript
 {
   text: string;  // Transcribed text
@@ -280,17 +310,19 @@ supabase/functions/
 ```
 
 **Features**:
+
 - Uses OpenAI Whisper API
 - Chunked processing to prevent memory issues
 - Supports multiple audio formats
 
 ### N8N Webhook Integration
 
-**Endpoint**: `https://customm.app.n8n.cloud/webhook/0f07e71e-d3c2-4cd2-a070-e9679bade170`
+**Endpoint**: `https://customm.app.n8n.cloud/webhook/0f07e71e-d3c2-4cd2-a070-e9679bade1'`
 
 **Method**: POST
 
 **Payload**:
+
 ```typescript
 {
   textPrompt: string;
@@ -313,6 +345,7 @@ supabase/functions/
 ## 🗄 Database Schema
 
 ### `projects` Table
+
 ```sql
 - id (uuid, primary key)
 - user_id (uuid, references auth.users)
@@ -322,6 +355,7 @@ supabase/functions/
 ```
 
 ### `chats` Table
+
 ```sql
 - id (uuid, primary key)
 - project_id (uuid, references projects)
@@ -332,6 +366,7 @@ supabase/functions/
 ```
 
 ### `messages` Table
+
 ```sql
 - id (uuid, primary key)
 - chat_id (uuid, references chats)
@@ -341,6 +376,7 @@ supabase/functions/
 ```
 
 ### `uploaded_files` Table
+
 ```sql
 - id (uuid, primary key)
 - user_id (uuid)
@@ -359,18 +395,22 @@ supabase/functions/
 ## 🔐 Security
 
 ### Authentication
+
 - Email/password authentication via Supabase Auth
 - Auto-confirmed email signups (development mode)
 - Session persistence with auto-refresh tokens
 - Protected routes requiring authentication
 
 ### Row Level Security (RLS)
+
 All database tables implement RLS policies:
+
 - Users can only access their own data
 - Policies enforce `user_id` matching on all operations
 - Storage buckets have user-specific access controls
 
 ### API Security
+
 - Edge Functions validate authentication tokens
 - CORS headers properly configured
 - Sensitive API keys stored as encrypted secrets
@@ -384,23 +424,17 @@ All database tables implement RLS policies:
 2. Click **Share** → **Publish**
 3. Your app will be deployed automatically
 
-### Custom Domain
-
-1. Go to **Project** → **Settings** → **Domains**
-2. Click **Connect Domain**
-3. Follow DNS configuration instructions
-
-**Note**: Custom domains require a paid Lovable plan.
-
 ## 📝 Usage Guide
 
 ### Creating a Project
+
 1. Log in to the application
 2. Click the **+** button in the sidebar
 3. Enter a project name
 4. Start chatting or uploading documents
 
 ### Uploading Documents
+
 1. Open a chat or create a new one
 2. Click the document icon in the chat input
 3. Select files (TXT, PDF, DOCX, images, etc.)
@@ -408,6 +442,7 @@ All database tables implement RLS policies:
 5. Documents are now available to the AI for context
 
 ### Voice Input
+
 1. Click the microphone icon in chat input
 2. Grant microphone permissions
 3. Speak your message
@@ -415,6 +450,7 @@ All database tables implement RLS policies:
 5. Transcription appears in the input field
 
 ### Managing Chats
+
 - **Rename**: Hover over chat → Click edit icon
 - **Delete**: Hover over chat → Click trash icon
 - **Reorder**: Drag and drop chats using grip handle
@@ -422,23 +458,27 @@ All database tables implement RLS policies:
 ## 🐛 Troubleshooting
 
 ### Documents Not Uploading
+
 - Check Edge Function logs in Lovable Cloud backend
 - Verify `WEAVIATE_URL` and `WEAVIATE_API_KEY` secrets
 - Ensure Weaviate instance is accessible
 - Check file size limits (max varies by plan)
 
 ### Audio Transcription Fails
+
 - Verify `OPENAI_API_KEY` is configured
 - Check audio format is supported
 - Ensure microphone permissions granted
 - Review `transcribe-audio` function logs
 
 ### Authentication Issues
+
 - Clear browser localStorage
 - Check if auto-confirm is enabled in Supabase Auth settings
 - Verify email/password meet requirements
 
 ### Chat History Not Saving
+
 - Check browser console for errors
 - Verify RLS policies allow user access
 - Ensure proper authentication state
