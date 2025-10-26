@@ -1,0 +1,1755 @@
+{
+  "name": "Multi-Channel Data Verification and RAG Query Response Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "id": "792a79bc-b125-4bc0-ae2d-993512690749",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1728,
+        912
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NVgefn3KmlNsd57i",
+          "name": "tacto guide"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "id": "26f6c7ef-21bc-4a88-82a6-db2de710eb7d",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        1120
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "03eef9fe-f322-4f03-9d81-55519eaaad10",
+      "name": "Embeddings OpenAI for RAG",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        1280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "-"
+      },
+      "id": "cba6b7c1-c9e7-45c2-9f39-64dca0e39222",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -112,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2112,
+        1280
+      ],
+      "id": "ff174223-e092-413f-aaf2-de2928024545",
+      "name": "Telegram Trigger1",
+      "webhookId": "154d9f23-371e-4c31-9d9d-00fdf9cb7fa2",
+      "credentials": {
+        "telegramApi": {
+          "id": "2gyHcjYQkIi9NXIA",
+          "name": "tacto guide telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b04e5dd8-4683-4f25-b345-fc06c2e00f6f",
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1936,
+        1280
+      ],
+      "id": "17ab5d1b-14ba-48c0-8060-0f0ffcf4161a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e6bcff09-5797-4b46-898f-98e5ff4f8b44",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1712,
+        1200
+      ],
+      "id": "6df08492-ec19-43b9-85db-e03cbd6f394c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1712,
+        1360
+      ],
+      "id": "11794b30-a8d4-413c-b2f7-25032fbb8eac",
+      "name": "Telegram1",
+      "webhookId": "e6e22621-ddc0-4c74-a05d-a9cef228906e",
+      "credentials": {
+        "telegramApi": {
+          "id": "2gyHcjYQkIi9NXIA",
+          "name": "tacto guide telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1552,
+        1360
+      ],
+      "id": "927587e7-ad00-4d66-af36-6cda25af7e24",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "=Classify buyer-supplier communication:\n\"{{ $json.text }}\"\n\n---\n\nCategories: Save, Retrieve, Both",
+        "categories": {
+          "categories": [
+            {
+              "category": "Retrieve",
+              "description": "=User asks questions (question marks, question words). \n\nExamples: \"When was last meeting?\", \"What's the price?\", \"Is order shipped?\"\n"
+            },
+            {
+              "category": "Save",
+              "description": "=User provides information to store/update (often implicit). \n\nExamples: \"Supplier changed address to Main St 5\", \"Price updated to $50\", \"Meeting moved to Friday\"\n"
+            },
+            {
+              "category": "Both",
+              "description": "=Information AND question in same message. \n\nExamples: \"New address: Main St 5 - can you notify team?\", \"Price now $45, when is next order?\"\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        1344
+      ],
+      "id": "f6ef5c69-53a1-4669-ba36-67ede32ce25d",
+      "name": "Text Classifier1",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "content": "## Telegram ",
+        "height": 400,
+        "width": 1104,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2224,
+        1152
+      ],
+      "typeVersion": 1,
+      "id": "213f4e40-c139-4c28-9db9-1436b5a53ecf",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "gpt-5-nano"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -928,
+        1616
+      ],
+      "id": "4f00598f-eaae-49f3-a870-9cdebdb72c2a",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Get data for the user from the TACTO database ",
+        "weaviateCollection": {
+          "__rl": true,
+          "value": "Text",
+          "mode": "list",
+          "cachedResultName": "Text"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        1120
+      ],
+      "id": "a6460c6c-ba91-41c4-b69e-8b63ca0cd794",
+      "name": "Weaviate Tacto Store",
+      "credentials": {
+        "weaviateApi": {
+          "id": "WMLvSLoDhInNOXVP",
+          "name": "Weaviate Credentials account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "weaviateCollection": {
+          "__rl": true,
+          "value": "Text",
+          "mode": "list",
+          "cachedResultName": "Text"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+      "typeVersion": 1.3,
+      "position": [
+        736,
+        1632
+      ],
+      "id": "8b3f7ada-a769-4ce4-bf93-e1705b94437c",
+      "name": "Weaviate Vector Store",
+      "credentials": {
+        "weaviateApi": {
+          "id": "WMLvSLoDhInNOXVP",
+          "name": "Weaviate Credentials account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        1824
+      ],
+      "id": "062de560-f334-4780-931d-facbca4bdfdb",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        1824
+      ],
+      "id": "d560c932-3a75-4909-a9cd-1c176016f683",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        768,
+        2016
+      ],
+      "id": "22e21bdf-bde6-4f91-9331-caf4286eec23",
+      "name": "Character Text Splitter1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=INPUT: {{ $json.text }}",
+        "options": {
+          "systemMessage": "You are a business data retrieval specialist for buyer-supplier communications.\n\nYour task: Find and return relevant business information from the knowledge base based on user queries.\n\n## Your Tools:\n- RAG search tool to query the vector database\n\n## Instructions:\n1. Analyze the user's question to understand what information they need\n2. Extract key search terms (suppliers, products, prices, dates, categories, departments)\n3. Use the RAG tool  (Weaviate Tacto Store) with focused search queries\n4. Present findings in a clear, structured format\n\n## Output Format:\nPresent results as:\n- Direct answer to the question\n- Relevant details (prices, dates, contacts)\n- Source information when available\n\n## Examples:\nUser: \"What was the last price for aluminum screws?\"\nSearch: \"aluminum screws price cost\"\n\nUser: \"When is the next meeting with Supplier ABC?\"\nSearch: \"meeting Supplier ABC schedule\"\n\nUser: \"Who is the contact at Company XYZ?\"\nSearch: \"Company XYZ contact person\"\n\nAlways search first, then provide a comprehensive answer based on the retrieved data."
+        }
+      },
+      "id": "6df4ef9c-4598-4fc3-adca-4e8fb4ae9323",
+      "name": "Data Retrieval Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"sender_name\": \"Seymen\",\n  \"title\": \"Europe market developments in Q1 2023\",\n    \"content\": \"In May 2025, Tesla reported a 25% increase in aluminum costs, impacting the automotive. Comparisons show that Europe maintains a strong position in terms of raw material imports.\",\n    \"category\": \"Market Report\",\n    \"department\": \"HR\",\n    \"effective_date\": \"2023-05-26\"\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        2304
+      ],
+      "id": "ad4952c8-31df-405c-88a5-f2de04155d63",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        2320
+      ],
+      "id": "c1a8a81d-c6ad-400f-acef-7f67b00ca4d3",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## GMAIL",
+        "height": 320,
+        "width": 512,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1840,
+        800
+      ],
+      "typeVersion": 1,
+      "id": "fa5ceddb-2acb-4e06-a4d1-1fb6bce9703f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input: \"{{ $json.text }}\";",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a business communication analyzer for buyer-supplier interactions.\n\nYour task: Extract and structure ONLY business-relevant hard facts from messages. Ignore small talk, weekend plans, personal wellness questions.\n\n## What to extract:\n- Price changes, cost updates\n- Delivery dates, schedule changes\n- Order modifications, quantity changes\n- Product specifications, quality issues\n- Meeting times (business-related only)\n- Address/contact updates\n- Contract terms, payment conditions\n\n\n## What to ignore:\n- Personal questions (\"How are you?\", \"How was your weekend?\")\n- Weather talk, small talk\n- Thank you messages without business content\n\n\n## User identification:\n\nExtract sender name (sender_name) from email header or message signature. If there are no signature extract the name from the \"{{ $json.From }}\".\n\n(e.g., \"Best regards, John\" -> \"user_name\": \"John\";\nSeymen <seymeny527@gmail.com> ->\n\"user_name\": \"John\";).\n\n## Date\nUse this formatting for the effective_date ({{ $now.format('yyyy-MM-dd') }})\n\n## JSON FORMAT EXAMPLE:\n\n<example>\n{\n\"sender_name: \"Seyman\";\n\"title\": \"Europe market developments in Q1 2023\",\n    \"content\": \"In May 2025, Tesla reported a 25% increase in aluminum costs, impacting the automotive. Comparisons show that Europe maintains a strong position in terms of raw material imports.\",\n    \"category\": \"Market Report\",\n    \"department\": \"HR\",\n    \"effective_date\": \"yyyy-MM-dd\"\n  }\n<example/>\n\n\n## IMPORTANT\nPlease give just out the Jason without any additional comments and Information "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        2080
+      ],
+      "id": "c3866560-bad0-4602-975f-a2f418201a77",
+      "name": "Business Data Editor"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Your only task is to extract the name from the mail sender, in the signature, in the end of the mail, or from the mail information itself \n\n## User identification:\nExtract sender name from email header or message signature/greetings (e.g., \"Best regards, John\"). Or the user handle.\n\nMail body: \n{{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.snippet, \"not available\") }}\n\nMail \"from\" sender: \n{{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.From, \"not available\") }}\n\nTelegram handle: \n{{ $if($('Telegram Trigger1').isExecuted, $('Telegram Trigger1').item.json.message.from.first_name, \"not available\") }}\n\nChoose the username available from Mail body, Mail from sender, or Telegram handle \n\n## OUTPUT:\n{\n  \"sender_name\": \"string\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -208,
+        2080
+      ],
+      "id": "afa926fd-ddd2-495b-acae-729b62bbb6c5",
+      "name": "Get me the Sender Name",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b8827ef0-43c1-44aa-bf01-98124c17bc73",
+              "name": "Content",
+              "value": "=sender_name: \"{{$('Get me the Sender Name').item.json.message.content.sender_name }}\",\nreciever_name: \"{{ $json.message.content.reciever_name }}\",\ntitle: \"{{ $('Business Data Editor').item.json.output.title }}\";\ncontent: \"{{ $('Business Data Editor').item.json.output.content }}\";\ncategory: \"{{ $('Business Data Editor').item.json.output.category }}\";\ndepartment: \"{{ $('Business Data Editor').item.json.output.department }}\";\neffective_date: \"{{ $now.format('yyyy-MM-dd') }}\"; ",
+              "type": "string"
+            },
+            {
+              "id": "d5c90569-22a1-4eaf-84d5-60fabb2934aa",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        1632
+      ],
+      "id": "cbef14e5-da80-4c2d-a60c-7aa65d705ffc",
+      "name": "Map Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2e1c764d-5664-4306-b725-272258ea3270",
+              "name": "text",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "ceb08e86-8376-4a62-9cbc-31c48bc80616",
+              "name": "trigger",
+              "value": "Mail",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1536,
+        912
+      ],
+      "id": "909757eb-cf26-46d9-8e12-fff7e30cd129",
+      "name": "Data Formatter Mail"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "58528eaa-abb9-43b0-af4f-3a0506350cc3",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "a61b393d-3158-4eab-9551-383c6d5491e2",
+              "name": "trigger",
+              "value": "telegram",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        1200
+      ],
+      "id": "bba9c894-9c7f-4437-b6bd-b50b2b3069b4",
+      "name": "Data Formatter Telegram"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "831beaa1-e53a-482b-8887-4edd98d459c9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bae8f9e0-e037-481d-9c3a-6415b99c8b23",
+                    "leftValue": "={{ $json.route }}\n",
+                    "rightValue": "=mail",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d1152b71-a2e4-42f8-8372-99f85c65ee12",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "frontend",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "frontend"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1280,
+        1632
+      ],
+      "id": "f0202ba9-d6d5-425f-b832-500f0bdd5659",
+      "name": "Input Trigger Switch",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check which trigger exists and route accordingly\nconst items = [];\n\ntry {\n  // Try to get Telegram trigger\n  const telegramTrigger = $('Data Formatter Telegram').first().json.trigger;\n  \n  if (telegramTrigger && telegramTrigger === 'telegram') {\n    const telegramData = $('Data Formatter Telegram').first().json;\n    items.push({\n      json: {\n        ...telegramData,\n        route: 'telegram'\n      }\n    });\n  }\n} catch (e) {\n  // Telegram node not executed, continue\n}\n\ntry {\n  // Try to get Mail trigger\n  const mailTrigger = $('Data Formatter Mail').first().json.trigger;\n  \n  if (mailTrigger && (mailTrigger === 'mail' || mailTrigger === 'Mail')) {\n    const mailData = $('Data Formatter Mail').first().json;\n    items.push({\n      json: {\n        ...mailData,\n        route: 'mail'\n      }\n    });\n  }\n} catch (e) {\n  // Mail node not executed, continue\n}\n\n// Check for Frontend input (webhook, form, etc.)\ntry {\n  // Check if there's a Frontend input - adjust node name as needed\n  const frontendData = $input.first().json;\n  \n  // If no telegram/mail route found but we have input data\n  if (items.length === 0 || frontendData.source === 'frontend') {\n    items.push({\n      json: {\n        ...frontendData,\n        route: 'frontend',\n        trigger: 'frontend'\n      }\n    });\n  }\n} catch (e) {\n  // No frontend input, continue\n}\n\n// If no valid trigger found, create fallback\nif (items.length === 0) {\n  items.push({\n    json: {\n      route: 'unknown',\n      error: 'No valid trigger found',\n      debug: 'Neither Telegram, Mail, nor Frontend node executed'\n    }\n  });\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        1648
+      ],
+      "id": "2479e01f-c90a-4f8f-a346-52431e403e2a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "362327796",
+        "text": "={{ $json.message.content }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        1408
+      ],
+      "id": "072a465f-a29a-43c1-b662-52a959ba7526",
+      "name": "Send a text message1",
+      "webhookId": "2be50200-9374-4d60-ac41-d1beb6e5be30",
+      "credentials": {
+        "telegramApi": {
+          "id": "2gyHcjYQkIi9NXIA",
+          "name": "tacto guide telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a professional email to update the user about their saved data.\n\n## Recipients:\nTo: {{ $('Get me the Sender Name').item.json.message.content.sender_name }}\nReferring to email from: {{ $('Get me the Receiver Name').item.json.message.content.receiver_name }}\n\n## Saved Data Details:\n- Content: {{ $('Business Data Editor').item.json.output.content }}\n- Category: {{ $('Business Data Editor').item.json.output.category }}\n- Department: {{ $('Business Data Editor').item.json.output.department }}\n\n## Instructions:\n- Write a friendly and professional email confirming the data has been saved successfully\n- Summarize the key information that was stored\n- Thank them for their submission\n- Do NOT include a subject line\n- Sign the email with: \"Best, your Tacto Guide\"\n\n## OUTPUT:\nWrite only the email body text, no subject line.\nWrite all in english."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1728,
+        1632
+      ],
+      "id": "88d17c6a-844f-4adb-8d2f-75e4781e47dd",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a concise Telegram message to confirm the data has been saved successfully.\n\n## Saved Data:\n- Content: {{ $('Business Data Editor').item.json.output.content }}\n- Category: {{ $('Business Data Editor').item.json.output.category }}\n- Department: {{ $('Business Data Editor').item.json.output.department }}\n\n## Instructions:\n- Keep it brief and telegram-friendly (use emojis if appropriate)\n- Confirm the data was saved successfully\n- Briefly summarize what was stored\n- Keep formatting simple (use line breaks for readability)\n- Sign off with: \"Best, your Tacto Guide\"\n\n## OUTPUT:\nGenerate only the message text for Telegram."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1616,
+        1408
+      ],
+      "id": "5d1eaa47-02f5-429d-9a59-f26d1762cab0",
+      "name": "Message a telegram back",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Find the sender Name",
+        "height": 448,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        1984
+      ],
+      "typeVersion": 1,
+      "id": "4933ed27-a35c-404f-a275-92bb2a39238f",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Your only task is to extract the name from the mail reciever, in the greetings, in the start of the mail, or from the mail information itself \n\n## User identification:\nExtract reciever name from email header or message signature/greetings (e.g., \"Best regards, John\"). Or the user handle.\n\nMail body: \n{{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.snippet, \"not available\") }}\n\nMail \"to\" receiver: \n{{ $if($('Gmail Trigger').isExecuted, $('Gmail Trigger').item.json.To, \"not available\") }}\n\n\nChoose the username available from Mail body, Mail from sender.\n\n## OUTPUT:\n{\n  \"reciever_name\": \"string\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        128,
+        2080
+      ],
+      "id": "8a2d0aad-c3b2-41fa-b677-ef0303dda7ef",
+      "name": "Get me the Receiver Name",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Find the receiver Name",
+        "height": 448,
+        "width": 288,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        96,
+        1968
+      ],
+      "typeVersion": 1,
+      "id": "b2c8773e-e6be-4d89-af08-faf270e7c5db",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Extract business data \n",
+        "height": 496,
+        "width": 448,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -720,
+        1968
+      ],
+      "typeVersion": 1,
+      "id": "f6ea5b4e-1271-4d68-a2d4-592cb063d82b",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "telegram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "831beaa1-e53a-482b-8887-4edd98d459c9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bae8f9e0-e037-481d-9c3a-6415b99c8b23",
+                    "leftValue": "={{ $json.route }}\n",
+                    "rightValue": "=mail",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mail"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d1152b71-a2e4-42f8-8372-99f85c65ee12",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "frontend",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "frontend"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        592,
+        848
+      ],
+      "id": "c28cb266-7bc8-4330-9be6-974f1115a159",
+      "name": "Input Trigger Switch1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check which trigger exists and route accordingly\nconst items = [];\n\ntry {\n  // Try to get Telegram trigger\n  const telegramTrigger = $('Data Formatter Telegram').first().json.trigger;\n  \n  if (telegramTrigger && telegramTrigger === 'telegram') {\n    const telegramData = $('Data Formatter Telegram').first().json;\n    items.push({\n      json: {\n        ...telegramData,\n        route: 'telegram'\n      }\n    });\n  }\n} catch (e) {\n  // Telegram node not executed, continue\n}\n\ntry {\n  // Try to get Mail trigger\n  const mailTrigger = $('Data Formatter Mail').first().json.trigger;\n  \n  if (mailTrigger && (mailTrigger === 'mail' || mailTrigger === 'Mail')) {\n    const mailData = $('Data Formatter Mail').first().json;\n    items.push({\n      json: {\n        ...mailData,\n        route: 'mail'\n      }\n    });\n  }\n} catch (e) {\n  // Mail node not executed, continue\n}\n\n// Check for Frontend input (webhook, form, etc.)\ntry {\n  // Check if there's a Frontend input - adjust node name as needed\n  const frontendData = $input.first().json;\n  \n  // If no telegram/mail route found but we have input data\n  if (items.length === 0 || frontendData.source === 'frontend') {\n    items.push({\n      json: {\n        ...frontendData,\n        route: 'frontend',\n        trigger: 'frontend'\n      }\n    });\n  }\n} catch (e) {\n  // No frontend input, continue\n}\n\n// If no valid trigger found, create fallback\nif (items.length === 0) {\n  items.push({\n    json: {\n      route: 'unknown',\n      error: 'No valid trigger found',\n      debug: 'Neither Telegram, Mail, nor Frontend node executed'\n    }\n  });\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        864
+      ],
+      "id": "c3fd131e-11fc-438c-82e6-78db7318c8db",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "chatId": "=362327796",
+        "text": "={{ $('Data Retrieval Agent').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        688
+      ],
+      "id": "aaad2beb-a3a1-4ffc-8dc6-78814c964a64",
+      "name": "Send a text message2",
+      "webhookId": "2be50200-9374-4d60-ac41-d1beb6e5be30",
+      "credentials": {
+        "telegramApi": {
+          "id": "2gyHcjYQkIi9NXIA",
+          "name": "tacto guide telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.From }}",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.Subject }}",
+        "emailType": "text",
+        "message": "={{ $('Data Retrieval Agent').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        864
+      ],
+      "id": "8f9e5d7c-0d41-4952-ac40-213f2b88c871",
+      "name": "Send a message",
+      "webhookId": "e0b91702-fe8e-4692-91a2-0c257d010baa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NVgefn3KmlNsd57i",
+          "name": "tacto guide"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.From }}",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2048,
+        1632
+      ],
+      "id": "2bbc6493-44c3-4f3f-bca1-bbdd1b260f13",
+      "name": "Send a message1",
+      "webhookId": "e0b91702-fe8e-4692-91a2-0c257d010baa",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NVgefn3KmlNsd57i",
+          "name": "tacto guide"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0f07e71e-d3c2-4cd2-a070-e9679bade170",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2032,
+        1680
+      ],
+      "id": "86e1e24b-a716-4355-ab2d-85305bcab26e",
+      "name": "Webhook",
+      "webhookId": "0f07e71e-d3c2-4cd2-a070-e9679bade170"
+    },
+    {
+      "parameters": {
+        "content": "## Frontend\n",
+        "height": 240,
+        "width": 624,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2064,
+        1616
+      ],
+      "typeVersion": 1,
+      "id": "dc809a30-b956-4a94-bca9-a9656409e445",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2e1c764d-5664-4306-b725-272258ea3270",
+              "name": "text",
+              "value": "={{ $json.textPrompt }}",
+              "type": "string"
+            },
+            {
+              "id": "ceb08e86-8376-4a62-9cbc-31c48bc80616",
+              "name": "trigger",
+              "value": "frontend",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1632,
+        1680
+      ],
+      "id": "6d858d3a-7203-4d85-9444-b875bc954d73",
+      "name": "Frontend Formatter"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        976,
+        1088
+      ],
+      "id": "29318b35-1f69-4cf8-8a1a-389bcfa95362",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract from webhook body\nconst inputItem = $input.first();\nconst body = inputItem.json.body;\nconst textType = body.textType || 'text';\nconst textPrompt = body.textPrompt || '';\nconst conversationHistory = body.conversationHistory || [];\nconst metadata = body.metadata || {};\n\n// Add console log to debug\nconsole.log('Extracted textType:', textType);\nconsole.log('Extracted textPrompt:', textPrompt);\nconsole.log('Extracted conversationHistory:', conversationHistory);\nconsole.log('Extracted metadata:', metadata);\n\n// Build the return item\nreturn [{\n  json: {\n    textType,\n    textPrompt,\n    conversationHistory,\n    metadata\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1872,
+        1680
+      ],
+      "id": "23d5977e-56b7-4a8a-9742-9a70805eacf0",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74435dff-067b-4072-ad28-c9abeb7af951",
+              "name": "message.content",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        1088
+      ],
+      "id": "3bbc4cf7-a234-40e0-867e-0580ceabf8f4",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2176,
+        1872
+      ],
+      "id": "b60b0973-ad52-4731-8604-537e47eb2947",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74435dff-067b-4072-ad28-c9abeb7af951",
+              "name": "message.content",
+              "value": "={{ $json.message.content }}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nWhat happened so far:\nMonday: Marie requests 15,000 pieces for €47\nMonday: Marco checks stock\nMonday: Alessandro confirms at BMW\nTuesday: Price negotiated (€47→€46→€45.50)\nWednesday: Payment terms negotiated\n\nNOW: Ready to close\n- Price set: €46 per piece\n- Payment: 50 days\n- Missing: Your signature\n\nRelationship with Brembo: Excellent (9/10)",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        1872
+      ],
+      "id": "02fa2fed-5de3-4eb0-ab48-1d77384b4129",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-nano",
+          "mode": "list",
+          "cachedResultName": "GPT-5-NANO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Write a concise Telegram message to confirm the data has been saved successfully.\n\n## Saved Data:\n- Content: {{ $('Business Data Editor').item.json.output.content }}\n- Category: {{ $('Business Data Editor').item.json.output.category }}\n- Department: {{ $('Business Data Editor').item.json.output.department }}\n\n## Instructions:\n- Keep it brief and telegram-friendly (use emojis if appropriate)\n- Confirm the data was saved successfully\n- Briefly summarize what was stored\n- Keep formatting simple (use line breaks for readability)\n- Sign off with: \"Best, your Tacto Guide\"\n\n## OUTPUT:\nGenerate only the message text for Telegram."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1616,
+        1872
+      ],
+      "id": "a54d5700-9955-4b66-bbae-8906936cf4ab",
+      "name": "Message a telegram back1",
+      "credentials": {
+        "openAiApi": {
+          "id": "IZdNEFAZ4scELHA4",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Second Brain",
+        "height": 736,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -384,
+        736
+      ],
+      "typeVersion": 1,
+      "id": "3ac3539e-a8a9-42a0-9e7e-56f407d69290",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Second Brain",
+        "height": 736,
+        "width": 608,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        480,
+        1520
+      ],
+      "typeVersion": 1,
+      "id": "4bbc80c9-2f48-4d2e-9687-1fda2da1c1fc",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Data Formatter Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI for RAG": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Weaviate Tacto Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Data Retrieval Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Data Retrieval Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram1": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Data Formatter Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Data Formatter Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier1": {
+      "main": [
+        [
+          {
+            "node": "Data Retrieval Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Business Data Editor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Business Data Editor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weaviate Tacto Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "Data Retrieval Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Weaviate Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Weaviate Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter1": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Retrieval Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Business Data Editor",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Business Data Editor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business Data Editor": {
+      "main": [
+        [
+          {
+            "node": "Get me the Sender Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get me the Sender Name": {
+      "main": [
+        [
+          {
+            "node": "Get me the Receiver Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Data": {
+      "main": [
+        [
+          {
+            "node": "Weaviate Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Formatter Mail": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Formatter Telegram": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weaviate Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Trigger Switch": {
+      "main": [
+        [
+          {
+            "node": "Message a telegram back",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a telegram back1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Input Trigger Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a telegram back": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get me the Receiver Name": {
+      "main": [
+        [
+          {
+            "node": "Map Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Trigger Switch1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Input Trigger Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Frontend Formatter": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Frontend Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a telegram back1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e298e1a9-5490-4717-96d9-236a66483134",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "da0a36f96acd541bd955c9063351b8ca0fd2dcfd0f31b464a8c1a092fd45017d"
+  },
+  "id": "SJ9QoEuEJ2obglz5",
+  "tags": []
+}
