@@ -1,4 +1,4 @@
-import { MessageSquare, FolderKanban, Plus, Trash2, Edit2, LogOut } from "lucide-react";
+import { MessageSquare, FolderKanban, Plus, Trash2, Edit2, LogOut, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -213,15 +213,23 @@ const DraggableChat = ({
   return (
     <div 
       ref={setNodeRef}
-      className={cn("relative group/item", isDragging && "opacity-50")}
+      className={cn("relative group/item flex items-center", isDragging && "opacity-50")}
     >
+      {!collapsed && (
+        <div 
+          {...listeners}
+          {...attributes}
+          className="cursor-grab active:cursor-grabbing p-1 opacity-0 group-hover/item:opacity-100 transition-opacity hover:bg-sidebar-accent rounded"
+          title="Drag to move"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
       <Button
-        {...listeners}
-        {...attributes}
         variant="ghost"
         className={cn(
-          "w-full justify-start hover:bg-sidebar-accent group cursor-grab active:cursor-grabbing",
-          collapsed ? "px-2" : "pr-2",
+          "flex-1 justify-start hover:bg-sidebar-accent group",
+          collapsed ? "px-2 w-full" : "pr-2",
           currentChatId === chat.id && "bg-sidebar-accent border-l-2 border-primary"
         )}
         onClick={() => onSelectChat(chat.id)}

@@ -35,7 +35,7 @@ const ChatMessage = ({ role, content, timestamp, isLoading = false }: ChatMessag
       <div className="flex-1 space-y-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">
-            {isUser ? "You" : "AI Assistant"}
+            {isUser ? "You" : "Tacto Guide"}
           </span>
           {timestamp && (
             <span className="text-xs text-muted-foreground">{timestamp}</span>
