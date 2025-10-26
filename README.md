@@ -171,13 +171,14 @@ src/
 
 
 ### n8n
-our n8n logic is located in the file n8n-Workflow.json
+our n8n logic is located in the file n8n-Workflow.json 
+here is a good video explaining how to import the workflow into n8n: https://www.youtube.com/watch?v=MD4_RgcyCNk 
 
 Here is a small explanation of the workflow: 
 
 Our end-to-end workflow works as follows: a prompt can be triggered via Telegram, Gmail (received or CC’d), or a frontend webhook. Users can ask questions or provide information through any of these channels. Files uploaded in the frontend are stored in the VBA database, supporting all relevant formats. The agent analyzes the input, stores any important information, and decides whether a response is needed. If a reply is required, the agent retrieves relevant context from the database and includes it in the response, which is then sent back through the original channel. Once completed, the workflow ends.
 
-
+The Workflow utilizes OpenAI for Agents and STT and Weaviate for the RAG Database. 
 ```
 supabase/functions/
 ├── upload-to-rag/           # Document processing & RAG indexing
