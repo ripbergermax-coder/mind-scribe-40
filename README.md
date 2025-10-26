@@ -6,7 +6,7 @@ An intelligent document-aware chat application built with React and Lovable Clou
 
 We built Tacto Guide as a comprehensive AI chat platform that combines conversational AI with document intelligence. The application allows companies to upload documents,connect emails and store conversations which are then processed and indexed into a vector database (Weaviate), enabling the AI to provide contextual responses based on the uploaded content. This creates a powerful knowledge management and query system. All the company knowledge will never be forgotten. 
 
-**Live Demo**: [https://lovable.dev/projects/279602cc-2c3e-4506-a503-d022c8f48854](https://lovable.dev/projects/279602cc-2c3e-4506-a503-d022c8f48854)
+**Live Demo**: https://munichhack.lovable.app/
 
 ## ✨ Key Features
 
